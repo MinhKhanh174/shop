@@ -1,7 +1,7 @@
 import { Mail, MapPin, Smartphone } from 'lucide-react'
 import { NewsletterForm } from '../../components/NewsletterForm'
 import brandLogo from '../../assets/logo1.png'
-import paymentImage from '../../assets/image.png'
+import paymentImage from '../../assets/PTTT.png'
 import facebookIcon from '../../assets/UngDung/Fb.png'
 import zaloIcon from '../../assets/UngDung/Zalo.png'
 import instagramIcon from '../../assets/UngDung/Intas.png'

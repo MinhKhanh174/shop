@@ -52,7 +52,7 @@ export function HeroSection({ heroSlides, remoteProducts, categoryItems = [], ba
 
   return (
     <section className="home-hero" id="hero">
-      <CategoryMenu remoteProducts={remoteProducts} categoryItems={categoryItems} />
+      <CategoryMenu remoteProducts={remoteProducts} categoryItems={categoryItems} linkMode="route" />
 
       <div className="hero__main">
         <div className="hero__slider">

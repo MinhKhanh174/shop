@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BarChart3, Search, ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
@@ -45,6 +45,7 @@ function useFlashCountdown() {
 function FlashSaleCard({ product }) {
   const [isAdding, setIsAdding] = useState(false)
   const addToCart = useCartStore((state) => state.addToCart)
+  const navigate = useNavigate()
   const detailPath = ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
   const comparePath = `${ROUTES.COMPARE}?ids=${product.id}`
 
@@ -65,8 +66,27 @@ function FlashSaleCard({ product }) {
     }
   }
 
+  const handleCardClick = () => {
+    navigate(detailPath)
+  }
+
+  const stopCardClick = (event) => {
+    event.stopPropagation()
+  }
+
   return (
-    <article className={`flash-sale-card${product.soldOut ? ' is-sold-out' : ''}`}>
+    <article
+      className={`flash-sale-card${product.soldOut ? ' is-sold-out' : ''}`}
+      role="link"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          handleCardClick()
+        }
+      }}
+    >
       <div className="flash-sale-card__media">
         <span className="flash-sale-card__period">{product.period}</span>
 
@@ -76,10 +96,20 @@ function FlashSaleCard({ product }) {
         </div>
 
         <div className="flash-sale-card__hover-actions" aria-label={`Tác vụ nhanh cho ${product.name}`}>
-          <Link to={detailPath} className="flash-sale-card__hover-action" aria-label={`Xem chi tiết ${product.name}`}>
+          <Link
+            to={detailPath}
+            onClick={stopCardClick}
+            className="flash-sale-card__hover-action"
+            aria-label={`Xem chi tiết ${product.name}`}
+          >
             <Search size={16} />
           </Link>
-          <Link to={comparePath} className="flash-sale-card__hover-action" aria-label={`So sánh ${product.name}`}>
+          <Link
+            to={comparePath}
+            onClick={stopCardClick}
+            className="flash-sale-card__hover-action"
+            aria-label={`So sánh ${product.name}`}
+          >
             <BarChart3 size={16} />
           </Link>
         </div>
@@ -98,7 +128,9 @@ function FlashSaleCard({ product }) {
       </div>
 
       <h3 className="flash-sale-card__name">
-        <Link to={detailPath}>{product.name}</Link>
+        <Link to={detailPath} onClick={stopCardClick}>
+          {product.name}
+        </Link>
       </h3>
 
       <div className="flash-sale-card__price-row">
@@ -112,7 +144,10 @@ function FlashSaleCard({ product }) {
           <button
             type="button"
             className="flash-sale-card__action"
-            onClick={handleAction}
+            onClick={(event) => {
+              event.stopPropagation()
+              handleAction()
+            }}
             disabled={isAdding}
             aria-label={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
           >

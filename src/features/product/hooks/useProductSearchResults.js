@@ -3,36 +3,41 @@ import { searchCatalogProducts } from '../../../services/productService.js'
 
 export function useProductSearchResults(query) {
   const [searchResults, setSearchResults] = useState([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [resolvedQuery, setResolvedQuery] = useState('')
+  const trimmedQuery = String(query ?? '').trim()
 
   useEffect(() => {
+    if (!trimmedQuery) {
+      return undefined
+    }
+
     let active = true
 
-    searchCatalogProducts(query)
+    searchCatalogProducts(trimmedQuery)
       .then((results) => {
         if (active) {
           setSearchResults(results)
-          setLoading(false)
           setError(null)
+          setResolvedQuery(trimmedQuery)
         }
       })
       .catch((err) => {
         if (active) {
           setSearchResults([])
-          setLoading(false)
           setError(err)
+          setResolvedQuery(trimmedQuery)
         }
       })
 
     return () => {
       active = false
     }
-  }, [query])
+  }, [trimmedQuery])
 
   return {
     searchResults,
     error,
-    loading,
+    loading: Boolean(trimmedQuery) && trimmedQuery !== resolvedQuery,
   }
 }

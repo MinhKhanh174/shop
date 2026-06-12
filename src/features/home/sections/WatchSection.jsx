@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ProductCard } from '../../../shared/ui/ProductCard'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import { mapProductsToCards } from '../../../utils/productMapper'
+import { getCategoryCollectionPath } from '../../../utils/categoryRoutes'
 
 export function WatchSection({ remoteProducts, watchBannerImage, categoryItems = [] }) {
   const [activeBrand] = useState('Apple')
@@ -82,6 +84,12 @@ export function WatchSection({ remoteProducts, watchBannerImage, categoryItems =
         <div className="watch-bottom-banner__art" aria-hidden="true">
           <div className="watch-bottom-banner__cable" />
         </div>
+      </div>
+
+      <div className="product-showcase-action">
+        <Link to={getCategoryCollectionPath('watch')} className="button button--ghost">
+          Xem tất cả
+        </Link>
       </div>
     </section>
   )

@@ -78,6 +78,7 @@ export function mapApiProductToCard(product, overrides = {}) {
     accent,
     type: overrides.type ?? typeByCategory[product.category] ?? 'phone',
     image: overrides.image ?? product.thumbnail ?? product.images?.[0] ?? null,
+    secondaryImage: overrides.secondaryImage ?? product.images?.[1] ?? null,
     category: product.category,
     stock: product.stock,
     rating: product.rating,

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import promoBannerImage from '../../assets/bannerQC.png'
+import promoBannerImage from '../../assets/Banner/bannerQC.png'
 import { HeaderTop } from './HeaderTop'
 
 function TopAdStrip() {

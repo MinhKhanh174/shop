@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useHomeStore } from '../../../store/useHomeStore'
 import { ProductCard } from '../../../shared/ui/ProductCard'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import { filterProductsBySupportedBrand, mapProductsToCards } from '../../../utils/productMapper'
+import { getCategoryCollectionPath } from '../../../utils/categoryRoutes'
 
 const phoneBannerCopy = {
   Apple: {
@@ -181,10 +183,10 @@ export function PhoneShowcaseSection({ remoteProducts, bannerAssets = {} }) {
       </div>
 
       <div className="center-action">
-        <button type="button" className="button button--ghost">
+        <Link to={getCategoryCollectionPath('smartphones')} className="button button--ghost">
           Xem tất cả
           <ArrowUpRight size={16} />
-        </button>
+        </Link>
       </div>
 
       <div className="phone-showcase__promo-row">

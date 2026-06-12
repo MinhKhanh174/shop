@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { ProductCard } from '../../../shared/ui/ProductCard'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import { mapProductsToCards } from '../../../utils/productMapper'
+import { getCategoryCollectionPath } from '../../../utils/categoryRoutes'
 
 function formatCurrency(value) {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -143,10 +145,10 @@ export function CategoryShowcaseSection({ sectionId, categoryKey, categoryLabel,
       </div>
 
       <div className="center-action">
-        <button type="button" className="button button--ghost">
+        <Link to={getCategoryCollectionPath(categoryKey)} className="button button--ghost">
           Xem tất cả
           <ArrowUpRight size={16} />
-        </button>
+        </Link>
       </div>
 
       <div className="phone-showcase__promo-row" style={{ '--promo-columns': promoTiles.length || 1 }}>

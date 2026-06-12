@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { SectionHeading } from '../../shared/ui/SectionHeading.jsx'
 import Card from '../../shared/ui/Card.jsx'
@@ -21,6 +21,7 @@ function mapRemoteProduct(product) {
     brand: product.brand,
     price,
     image: product.thumbnail ?? product.images?.[0] ?? null,
+    secondaryImage: product.images?.[1] ?? null,
     description: product.description ?? '',
     priceText: formatCurrency(price),
   }
@@ -50,13 +51,27 @@ function SearchResults({ query, activeCategory, localFilter }) {
 }
 
 function ProductGrid({ products, addToCart }) {
+  const navigate = useNavigate()
+
   return (
     <section className="grid gap-5 xl:grid-cols-3">
       {products.length === 0 ? (
         <Card className="col-span-full p-10 text-center text-slate-500">Không tìm thấy sản phẩm phù hợp.</Card>
       ) : (
         products.map((product) => (
-          <Card key={product.id} className="overflow-hidden">
+          <Card
+            key={product.id}
+            className="overflow-hidden"
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate(ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id)))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                navigate(ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id)))
+              }
+            }}
+          >
             <div className="h-52 bg-slate-100 p-4">
               <img src={product.image} alt={product.name} className="h-full w-full rounded-3xl object-cover" />
             </div>
@@ -68,6 +83,7 @@ function ProductGrid({ products, addToCart }) {
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <Link
                   to={ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))}
+                  onClick={(event) => event.stopPropagation()}
                   className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
                   Chi tiết
@@ -75,7 +91,8 @@ function ProductGrid({ products, addToCart }) {
                 <Button
                   variant="secondary"
                   className="rounded-full px-4 py-2 text-sm"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.stopPropagation()
                     addToCart(product)
                     toast.success(`Đã thêm ${product.name} vào giỏ`)
                   }}

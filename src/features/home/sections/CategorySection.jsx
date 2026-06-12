@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { ProductCard } from '../../../shared/ui/ProductCard'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import { mapProductsToCards } from '../../../utils/productMapper'
 import { mapApiCategoriesToCategoryItems } from '../../../utils/categoryMapper'
+import { getCategoryCollectionPath } from '../../../utils/categoryRoutes'
 
 export function CategorySection({ category, remoteProducts, allCategories = [] }) {
   const categoryKey = category.slug || category
@@ -32,9 +34,9 @@ export function CategorySection({ category, remoteProducts, allCategories = [] }
       </div>
 
       <div className="product-showcase-action">
-        <button type="button" className="button button--ghost">
+        <Link to={getCategoryCollectionPath(categoryKey)} className="button button--ghost">
           Xem tất cả
-        </button>
+        </Link>
       </div>
     </section>
   )

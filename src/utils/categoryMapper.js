@@ -20,6 +20,7 @@ import {
   Flame,
   Sofa,
 } from 'lucide-react'
+import { getCategoryCollectionPath } from './categoryRoutes'
 
 const iconMap = {
   smartphones: Smartphone,
@@ -93,7 +94,7 @@ export function mapApiCategoriesToCategoryItems(apiCategories) {
       sidebarLabel: labelMap[categoryKey] || categoryName,
       stripLabel: labelMap[categoryKey] || categoryName,
       icon: iconMap[categoryKey] || PackageSearch,
-      href: `#category-${categoryKey}`,
+      href: getCategoryCollectionPath(categoryKey),
       tone: ['#6c7dff', '#ff6ea8'],
       showInStrip: true,
     }

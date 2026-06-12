@@ -1,8 +1,9 @@
 import { ChevronRight, Gift } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useHomeStore } from '../../store/useHomeStore'
 import { buildCategoryMegaGroups } from '../../utils/categoryMenuBuilder'
+import { getCategoryCollectionPath } from '../../utils/categoryRoutes'
 
 function CategoryMegaPanel({ categoryKey, remoteProducts }) {
   const groups = useMemo(() => buildCategoryMegaGroups(remoteProducts, categoryKey), [remoteProducts, categoryKey])
@@ -36,7 +37,23 @@ function CategoryMegaPanel({ categoryKey, remoteProducts }) {
   )
 }
 
-export function CategoryMenu({ remoteProducts = [], categoryItems = [] }) {
+function MenuItemLink({ linkMode, item, onEnter, children }) {
+  if (linkMode === 'route') {
+    return (
+      <Link to={getCategoryCollectionPath(item.key)} className="menu-item__link" title={item.sidebarLabel} onMouseEnter={onEnter} onFocus={onEnter}>
+        {children}
+      </Link>
+    )
+  }
+
+  return (
+    <a href={item.href} className="menu-item__link" title={item.sidebarLabel} onMouseEnter={onEnter} onFocus={onEnter}>
+      {children}
+    </a>
+  )
+}
+
+export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode = 'anchor' }) {
   const location = useLocation()
   const isHomeRoute = location.pathname === '/'
   const isOpen = useHomeStore((state) => state.isCategoryMenuOpen)
@@ -60,11 +77,13 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [] }) {
   const [activeCategory, setActiveCategory] = useState(null)
   const [isMegaOpen, setIsMegaOpen] = useState(false)
   const closeTimerRef = useRef(null)
+
   const activeGroups = useMemo(() => {
     if (!activeCategory) return []
 
     return buildCategoryMegaGroups(remoteProducts, activeCategory)
   }, [remoteProducts, activeCategory])
+
   const hasActiveProducts =
     activeGroups.length > 0 &&
     activeGroups.some((group) => group.items?.some((entry) => entry.label && entry.label !== 'Không có sản phẩm nào'))
@@ -90,7 +109,9 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [] }) {
 
   useEffect(() => {
     return () => {
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current)
+      }
     }
   }, [])
 
@@ -128,29 +149,18 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [] }) {
               groups.length > 0 &&
               groups.some((group) => group.items?.some((entry) => entry.label && entry.label !== 'Không có sản phẩm nào'))
 
+            const handleEnter = () => {
+              setActiveCategory(item.key)
+              if (hasProducts) {
+                openMegaPanel()
+              } else {
+                setIsMegaOpen(false)
+              }
+            }
+
             return (
               <li key={item.key} className={`menu-item list-group-item ${isActive ? 'is-active' : ''}`}>
-                <a
-                  href={item.href}
-                  className="menu-item__link"
-                  title={item.sidebarLabel}
-                  onMouseEnter={() => {
-                    setActiveCategory(item.key)
-                    if (hasProducts) {
-                      openMegaPanel()
-                    } else {
-                      setIsMegaOpen(false)
-                    }
-                  }}
-                  onFocus={() => {
-                    setActiveCategory(item.key)
-                    if (hasProducts) {
-                      openMegaPanel()
-                    } else {
-                      setIsMegaOpen(false)
-                    }
-                  }}
-                >
+                <MenuItemLink linkMode={linkMode} item={item} hasProducts={hasProducts} onEnter={handleEnter}>
                   {Icon ? (
                     <span className="menu-item__icon">
                       <Icon size={18} />
@@ -168,7 +178,7 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [] }) {
                   ) : (
                     <span />
                   )}
-                </a>
+                </MenuItemLink>
               </li>
             )
           })}

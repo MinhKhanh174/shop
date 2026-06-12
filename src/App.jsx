@@ -1,5 +1,5 @@
-import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { SiteHeader } from './components/layout/SiteHeader'
 import { SubNav } from './components/layout/SubNav'
@@ -11,14 +11,26 @@ import { useScrollShadow } from './hooks/useScrollShadow'
 import './App.css'
 
 const HomePage = lazy(() => import('./features/home/HomePage'))
+const CategoryPage = lazy(() => import('./features/category/CategoryPage'))
 const ProductListPage = lazy(() => import('./features/product/ProductListPage'))
 const ProductDetailPage = lazy(() => import('./features/product/ProductDetailPage'))
 const ComparePage = lazy(() => import('./features/product/ComparePage'))
 const CartPage = lazy(() => import('./features/cart/CartPage'))
+const LoginPage = lazy(() => import('./features/auth/LoginPage'))
 const NotFoundPage = lazy(() => import('./shared/ui/NotFoundPage'))
 
 function PageLoader() {
   return <div className="page-loader">Đang tải...</div>
+}
+
+function ScrollToTop() {
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.search])
+
+  return null
 }
 
 function AppShell() {
@@ -62,6 +74,7 @@ function AppShell() {
       }}
     >
       <Toaster position="top-right" toastOptions={{ duration: 2500 }} />
+      <ScrollToTop />
       <div ref={headerRef} className="site-header">
         <SiteHeader isScrolled={isScrolled} />
       </div>
@@ -73,10 +86,12 @@ function AppShell() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path={ROUTES.HOME} element={<HomePage />} />
+              <Route path={ROUTES.COLLECTION} element={<CategoryPage />} />
               <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
               <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
               <Route path={ROUTES.COMPARE} element={<ComparePage />} />
               <Route path={ROUTES.CART} element={<CartPage />} />
+              <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

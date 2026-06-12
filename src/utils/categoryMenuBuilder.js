@@ -108,8 +108,7 @@ function makeGroupTitle(categoryKey, brand) {
 }
 
 function makeLink(product) {
-  const slug = normalize(product.title).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return slug ? `#${slug}` : '#phone-section'
+  return ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
 }
 
 export function buildCategoryMegaGroups(remoteProducts, categoryKey) {
@@ -167,3 +166,4 @@ export function buildCategoryMegaGroups(remoteProducts, categoryKey) {
     }
   })
 }
+import { ROUTES } from '../config/routes'

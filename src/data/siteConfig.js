@@ -1,9 +1,17 @@
 import { CreditCard, Smartphone, ShoppingCart } from 'lucide-react'
+import { ROUTES } from '../config/routes'
 
 export const topActions = [
   { id: 'phone', label: 'Gọi mua hàng', value: '19006750', iconKey: 'phone' },
   { id: 'store', label: 'Hệ thống', value: 'cửa hàng', iconKey: 'map-pin' },
-  { id: 'account', label: 'Tài khoản', value: 'Đăng nhập', iconKey: 'user' },
+  {
+    id: 'account',
+    label: 'Tài khoản',
+    iconKey: 'user',
+    links: [
+      { label: 'Đăng nhập', to: ROUTES.LOGIN },
+    ],
+  },
 ]
 
 export const supportLinks = [

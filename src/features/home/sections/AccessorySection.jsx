@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { phoneAccessoriesProducts } from '../../../data/homeData'
 import { ProductCard } from '../../../shared/ui/ProductCard'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import { mapProductsToCards } from '../../../utils/productMapper'
+import { getCategoryCollectionPath } from '../../../utils/categoryRoutes'
 
 const accessoryTabs = [
   { key: 'cable', label: 'Cáp sạc' },
@@ -71,10 +73,10 @@ export function AccessorySection({ remoteProducts = [] }) {
       </div>
 
       <div className="product-showcase-action">
-        <button type="button" className="button button--ghost">
+        <Link to={getCategoryCollectionPath('accessories')} className="button button--ghost">
           Xem tất cả
           <ArrowUpRight size={16} />
-        </button>
+        </Link>
       </div>
     </section>
   )

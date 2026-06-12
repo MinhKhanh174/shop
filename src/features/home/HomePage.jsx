@@ -28,20 +28,11 @@ export default function HomePage() {
   const bannerAssets = useMemo(() => buildBannerAssets(remote.products), [remote.products])
   const heroSlides = useMemo(() => fallbackHeroSlides, [])
   const categoryShowcaseItems = useMemo(() => {
-    const categoryCounts = new Map()
-
-    remote.products.forEach((product) => {
-      const key = product.category
-      categoryCounts.set(key, (categoryCounts.get(key) ?? 0) + 1)
-    })
-
-    return remote.categoryItems
-      .filter((item) => (categoryCounts.get(item.key) ?? 0) > 0)
-      .map((item) => ({
-        ...item,
-        sectionId: item.key === 'smartphones' ? 'phone-section' : `category-${item.key}`,
-      }))
-  }, [remote.categoryItems, remote.products])
+    return remote.categoryItems.map((item) => ({
+      ...item,
+      sectionId: item.key === 'smartphones' ? 'phone-section' : `category-${item.key}`,
+    }))
+  }, [remote.categoryItems])
 
   if (remote.loading) {
     return <div className="home-page">Đang tải dữ liệu...</div>

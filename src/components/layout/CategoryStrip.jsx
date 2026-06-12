@@ -1,14 +1,10 @@
 import { useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { getCategoryCollectionPath } from '../../utils/categoryRoutes'
 
 export function CategoryStrip({ categoryItems = [] }) {
   const trackRef = useRef(null)
-  const dragStateRef = useRef({
-    isDown: false,
-    startX: 0,
-    startScrollLeft: 0,
-    hasDragged: false,
-  })
   const stripItems = categoryItems.filter((item) => item.showInStrip)
 
   const scrollTrack = (direction) => {
@@ -20,43 +16,6 @@ export function CategoryStrip({ categoryItems = [] }) {
       left: direction * amount,
       behavior: 'smooth',
     })
-  }
-
-  const handlePointerDown = (event) => {
-    const track = trackRef.current
-    if (!track || event.button !== 0) return
-
-    dragStateRef.current.isDown = true
-    dragStateRef.current.hasDragged = false
-    dragStateRef.current.startX = event.clientX
-    dragStateRef.current.startScrollLeft = track.scrollLeft
-    track.setPointerCapture?.(event.pointerId)
-  }
-
-  const handlePointerMove = (event) => {
-    const track = trackRef.current
-    const state = dragStateRef.current
-
-    if (!track || !state.isDown) return
-
-    const delta = event.clientX - state.startX
-    if (Math.abs(delta) > 4) {
-      state.hasDragged = true
-    }
-
-    track.scrollLeft = state.startScrollLeft - delta
-  }
-
-  const endDrag = (event) => {
-    const track = trackRef.current
-    const state = dragStateRef.current
-
-    if (!state.isDown) return
-
-    state.isDown = false
-    if (track && event?.pointerId != null) {
-      track.releasePointerCapture?.(event.pointerId)
-    }
   }
 
   if (!stripItems.length) {
@@ -77,27 +36,17 @@ export function CategoryStrip({ categoryItems = [] }) {
       <div
         ref={trackRef}
         className="category-strip__track"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onPointerLeave={endDrag}
       >
         {stripItems.map((item) => {
           const Icon = item.icon
-          const handleClick = (event) => {
-            if (dragStateRef.current.hasDragged) {
-              event.preventDefault()
-              event.stopPropagation()
-            }
-          }
+          const targetPath = getCategoryCollectionPath(item.key)
 
           return (
-            <a
+            <Link
               key={item.key}
-              href={item.href}
+              to={targetPath}
               className={`category-strip__item${item.isActive ? ' is-active' : ''}${item.isHot ? ' category-strip__item--hot' : ''}`}
-              onClick={handleClick}
+              draggable="false"
             >
               <span className="category-strip__icon-shell" aria-hidden="true">
                 {item.isHot ? (
@@ -107,7 +56,7 @@ export function CategoryStrip({ categoryItems = [] }) {
                 )}
               </span>
               <span className="category-strip__label">{item.stripLabel}</span>
-            </a>
+            </Link>
           )
         })}
       </div>

@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ROUTES } from '../../config/routes'
+import { useProductSearchResults } from '../../features/product/hooks/useProductSearchResults'
 
 const searchHints = [
   'Nhập tên sản phẩm..',
@@ -20,48 +21,44 @@ export function SearchBar() {
   const [messageIndex, setMessageIndex] = useState(0)
   const [charIndex, setCharIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
-  const deleteTimeoutRef = useRef(null)
+  const [debouncedTerm, setDebouncedTerm] = useState('')
+  const { searchResults, loading } = useProductSearchResults(debouncedTerm)
 
   useEffect(() => {
-    if (isFocused || searchTerm) return
+    const timeout = window.setTimeout(() => {
+      setDebouncedTerm(searchTerm.trim())
+    }, 180)
+
+    return () => window.clearTimeout(timeout)
+  }, [searchTerm])
+
+  useEffect(() => {
+    if (isFocused || searchTerm) return undefined
 
     const currentMessage = searchHints[messageIndex]
     const typingSpeed = isDeleting ? 50 : 100
 
-    if (deleteTimeoutRef.current) {
-      clearTimeout(deleteTimeoutRef.current)
-      deleteTimeoutRef.current = null
-    }
-
-    const timeout = setTimeout(() => {
+    const timeout = window.setTimeout(() => {
       if (!isDeleting) {
         if (charIndex < currentMessage.length) {
           setPlaceholderText(currentMessage.substring(0, charIndex + 1))
           setCharIndex(charIndex + 1)
         } else {
-          deleteTimeoutRef.current = setTimeout(() => {
-            setIsDeleting(true)
-          }, 1500)
+          window.setTimeout(() => setIsDeleting(true), 1500)
         }
+      } else if (charIndex > 0) {
+        setPlaceholderText(currentMessage.substring(0, charIndex - 1))
+        setCharIndex(charIndex - 1)
       } else {
-        if (charIndex > 0) {
-          setPlaceholderText(currentMessage.substring(0, charIndex - 1))
-          setCharIndex(charIndex - 1)
-        } else {
-          setIsDeleting(false)
-          setMessageIndex((prev) => (prev + 1) % searchHints.length)
-        }
+        setIsDeleting(false)
+        setMessageIndex((prev) => (prev + 1) % searchHints.length)
       }
     }, typingSpeed)
 
-    return () => {
-      clearTimeout(timeout)
-      if (deleteTimeoutRef.current) {
-        clearTimeout(deleteTimeoutRef.current)
-        deleteTimeoutRef.current = null
-      }
-    }
+    return () => window.clearTimeout(timeout)
   }, [isFocused, searchTerm, messageIndex, charIndex, isDeleting])
+
+  const suggestionItems = useMemo(() => searchResults.slice(0, 6), [searchResults])
 
   const handleSearch = (event) => {
     event.preventDefault()
@@ -76,19 +73,55 @@ export function SearchBar() {
   }
 
   return (
-    <form className="searchbar" onSubmit={handleSearch}>
-      <input
-        type="search"
-        value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder={isFocused || searchTerm ? '' : placeholderText}
-        aria-label="Tìm sản phẩm"
-      />
-      <button type="submit" aria-label="Tìm kiếm">
-        <Search size={18} className="searchbar__button-icon" />
-      </button>
-    </form>
+    <div className="searchbar-wrap">
+      <form className="searchbar" onSubmit={handleSearch}>
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            window.setTimeout(() => setIsFocused(false), 120)
+          }}
+          placeholder={isFocused || searchTerm ? '' : placeholderText}
+          aria-label="Tìm sản phẩm"
+        />
+        <button type="submit" aria-label="Tìm kiếm">
+          <Search size={18} className="searchbar__button-icon" />
+        </button>
+      </form>
+
+      {isFocused && debouncedTerm ? (
+        <div className="searchbar__suggestions" role="listbox" aria-label={`Kết quả tìm kiếm cho ${debouncedTerm}`}>
+          <div className="searchbar__suggestions-header">
+            <strong>Kết quả tìm kiếm cho {debouncedTerm}</strong>
+            <Link to={`${ROUTES.PRODUCTS}?q=${encodeURIComponent(debouncedTerm)}`}>Xem tất cả</Link>
+          </div>
+
+          {loading ? (
+            <div className="searchbar__suggestions-empty">Đang tải...</div>
+          ) : suggestionItems.length > 0 ? (
+            <div className="searchbar__suggestions-list">
+              {suggestionItems.map((product) => (
+                <Link
+                  key={product.id}
+                  to={ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))}
+                  className="searchbar__suggestion"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <img src={product.image} alt="" />
+                  <div>
+                    <span>{product.name}</span>
+                    <strong>{product.priceText}</strong>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="searchbar__suggestions-empty">Không tìm thấy sản phẩm phù hợp.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
   )
 }
