@@ -1,0 +1,27 @@
+{
+  "topAdText": "img",
+  "heroSlides": [
+    {
+      "brand": "SAMSUNG",
+      "title": "Galaxy Z Flip5 5G",
+      "price": "23.990.000đ",
+      "subtitle": "0% PREORDER · TRẢ GÓP 0%",
+      "theme": "purple"
+    },
+    {
+      "brand": "APPLE",
+      "title": "iPhone 13",
+      "price": "24.490.000đ",
+      "subtitle": "Deal phát sốt",
+      "theme": "blue"
+    },
+    {
+      "brand": "OPPO",
+      "title": "OPPO Find X3 Pro 5G",
+      "price": "23.999.000đ",
+      "subtitle": "Tặng gói bảo hành Gold",
+      "theme": "green"
+    }
+  ],
+  "brands": ["Apple", "Samsung", "Oppo", "Xiaomi", "Garmin", "Mozard", "Anker", "Belkin"]
+}
