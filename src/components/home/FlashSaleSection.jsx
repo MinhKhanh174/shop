@@ -6,6 +6,8 @@ import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
 import { useCartStore } from '../../store/useCartStore'
 import { ROUTES } from '../../config/routes'
+import { AddToCartButton } from '../../shared/ui/AddToCartButton'
+import { useCompareStore } from '../../store/useCompareStore'
 
 function buildTimeParts(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds)
@@ -45,9 +47,9 @@ function useFlashCountdown() {
 function FlashSaleCard({ product }) {
   const [isAdding, setIsAdding] = useState(false)
   const addToCart = useCartStore((state) => state.addToCart)
+  const addToCompare = useCompareStore((state) => state.addToCompare)
   const navigate = useNavigate()
   const detailPath = ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
-  const comparePath = `${ROUTES.COMPARE}?ids=${product.id}`
 
   const handleAction = () => {
     if (product.soldOut) {
@@ -104,14 +106,18 @@ function FlashSaleCard({ product }) {
           >
             <Search size={16} />
           </Link>
-          <Link
-            to={comparePath}
-            onClick={stopCardClick}
+          <button
+            type="button"
+            onClick={(event) => {
+              stopCardClick(event)
+              addToCompare(product)
+              toast.success(`Đã thêm ${product.name} vào so sánh`)
+            }}
             className="flash-sale-card__hover-action"
             aria-label={`So sánh ${product.name}`}
           >
             <BarChart3 size={16} />
-          </Link>
+          </button>
         </div>
 
         {product.image ? (
@@ -141,18 +147,16 @@ function FlashSaleCard({ product }) {
             Hết hàng
           </button>
         ) : (
-          <button
-            type="button"
+          <AddToCartButton
             className="flash-sale-card__action"
+            icon={ShoppingCart}
+            loading={isAdding}
+            ariaLabel={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
             onClick={(event) => {
               event.stopPropagation()
               handleAction()
             }}
-            disabled={isAdding}
-            aria-label={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
-          >
-            <ShoppingCart size={16} />
-          </button>
+          />
         )}
       </div>
 

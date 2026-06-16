@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import Card from '../../shared/ui/Card.jsx'
 import { SectionHeading } from '../../shared/ui/SectionHeading.jsx'
+import { useCompareStore } from '../../store/useCompareStore'
 import { useCompareProducts } from './hooks/useCompareProducts.js'
 
 function CompareContent({ ids }) {
@@ -74,9 +75,10 @@ function CompareContent({ ids }) {
 export default function ComparePage() {
   const [searchParams] = useSearchParams()
   const idsParam = searchParams.get('ids')
+  const compareIds = useCompareStore((state) => state.getCompareIds())
   const ids = idsParam
     ? idsParam.split(',').map((id) => id.trim()).filter(Boolean)
-    : ['1', '3', '5']
+    : compareIds
   const idsKey = ids.join(',')
 
   return <CompareContent key={idsKey} ids={ids} />

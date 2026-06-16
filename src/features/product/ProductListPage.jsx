@@ -1,176 +1,204 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { SectionHeading } from '../../shared/ui/SectionHeading.jsx'
-import Card from '../../shared/ui/Card.jsx'
-import Button from '../../shared/ui/Button.jsx'
 import { useHomeData } from '../../hooks/useHomeData'
-import { useCart } from '../../hooks/useCart.js'
-import { ROUTES } from '../../config/routes'
-import { formatCurrency } from '../../utils/currency.js'
+import { getViewedProducts } from '../../utils/viewedProducts'
+import { SectionHeading } from '../../shared/ui/SectionHeading'
+import { CategoryBreadcrumb } from '../category/components/CategoryBreadcrumb'
+import { CategoryEmptyState } from '../category/components/CategoryEmptyState'
+import { CategoryProductGrid } from '../category/components/CategoryProductGrid'
+import { CategorySidebar } from '../category/components/CategorySidebar'
+import { CategorySortBar } from '../category/components/CategorySortBar'
+import { ViewedProductsSection } from '../category/components/ViewedProductsSection'
+import { VoucherSection } from '../home/sections/VoucherSection'
 import { useProductSearchResults } from './hooks/useProductSearchResults.js'
+import {
+  buildBrandOptions,
+  buildPaginationPages,
+  dedupeProducts,
+  getCollectionMeta,
+  getVisibleProducts,
+  mapRemoteProduct,
+  matchesPriceRange,
+  sortProducts,
+} from './productList.utils'
 
-const categories = ['All', 'Apple', 'Samsung', 'Xiaomi', 'Oppo']
-
-function mapRemoteProduct(product) {
-  const price = product.price < 1000 ? Math.round(product.price * 25000) : Math.round(product.price)
-
-  return {
-    id: product.id,
-    name: product.title,
-    brand: product.brand,
-    price,
-    image: product.thumbnail ?? product.images?.[0] ?? null,
-    secondaryImage: product.images?.[1] ?? null,
-    description: product.description ?? '',
-    priceText: formatCurrency(price),
-  }
-}
-
-function SearchResults({ query, activeCategory, localFilter }) {
-  const { addToCart } = useCart()
-  const { searchResults, loading, error } = useProductSearchResults(query)
-
-  useEffect(() => {
-    if (error) {
-      toast.error('Khơng thể tìm kiếm sản phẩm')
-    }
-  }, [error])
-
-  const filteredProducts = searchResults.filter((product) => {
-    const matchCategory = activeCategory === 'All' || product.brand === activeCategory
-    const matchSearch = product.name.toLowerCase().includes(localFilter.toLowerCase())
-    return matchCategory && matchSearch
-  })
-
-  if (loading) {
-    return <div className="space-y-8">Đang tìm kiếm &quot;{query}&quot;...</div>
-  }
-
-  return <ProductGrid products={filteredProducts} addToCart={addToCart} />
-}
-
-function ProductGrid({ products, addToCart }) {
-  const navigate = useNavigate()
-
-  return (
-    <section className="grid gap-5 xl:grid-cols-3">
-      {products.length === 0 ? (
-        <Card className="col-span-full p-10 text-center text-slate-500">Không tìm thấy sản phẩm phù hợp.</Card>
-      ) : (
-        products.map((product) => (
-          <Card
-            key={product.id}
-            className="overflow-hidden"
-            role="link"
-            tabIndex={0}
-            onClick={() => navigate(ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id)))}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                navigate(ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id)))
-              }
-            }}
-          >
-            <div className="h-52 bg-slate-100 p-4">
-              <img src={product.image} alt={product.name} className="h-full w-full rounded-3xl object-cover" />
-            </div>
-            <div className="p-5">
-              <p className="text-sm text-slate-500">{product.brand}</p>
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">{product.name}</h3>
-              <p className="mt-3 text-lg font-bold text-red-600">{product.priceText}</p>
-              <p className="mt-2 text-sm text-slate-500 line-clamp-2">{product.description}</p>
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <Link
-                  to={ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))}
-                  onClick={(event) => event.stopPropagation()}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Chi tiết
-                </Link>
-                <Button
-                  variant="secondary"
-                  className="rounded-full px-4 py-2 text-sm"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    addToCart(product)
-                    toast.success(`Đã thêm ${product.name} vào giỏ`)
-                  }}
-                >
-                  Thêm vào giỏ
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))
-      )}
-    </section>
-  )
-}
+const PAGE_SIZE = 12
 
 export default function ProductListPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q')?.trim() ?? ''
   const { products: remoteProducts, loading: remoteLoading } = useHomeData()
-  const { addToCart } = useCart()
-  const [activeCategory, setActiveCategory] = useState('All')
-  const [localFilter, setLocalFilter] = useState('')
+  const { searchResults, loading: searchLoading, error: searchError } = useProductSearchResults(query)
 
-  const catalogProducts = useMemo(() => remoteProducts.map(mapRemoteProduct), [remoteProducts])
+  const [selectedBrands, setSelectedBrands] = useState([])
+  const [selectedPriceRange, setSelectedPriceRange] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const filteredProducts = catalogProducts.filter((product) => {
-    const matchCategory = activeCategory === 'All' || product.brand === activeCategory
-    const matchSearch = product.name.toLowerCase().includes(localFilter.toLowerCase())
-    return matchCategory && matchSearch
-  })
+  useEffect(() => {
+    if (searchError) {
+      toast.error('Không thể tìm kiếm sản phẩm')
+    }
+  }, [searchError])
 
-  if (!query && remoteLoading) {
-    return <div className="space-y-8">Đang tải danh sách sản phẩm...</div>
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [query])
+
+  const baseProducts = useMemo(() => {
+    const sourceProducts = query ? searchResults : remoteProducts
+    const mappedProducts = sourceProducts.map(mapRemoteProduct)
+
+    return dedupeProducts(mappedProducts)
+  }, [query, remoteProducts, searchResults])
+
+  const brandOptions = useMemo(() => buildBrandOptions(baseProducts), [baseProducts])
+  const collectionMeta = useMemo(() => getCollectionMeta(query), [query])
+
+  const filteredProducts = useMemo(() => {
+    const byBrand =
+      selectedBrands.length > 0
+        ? baseProducts.filter((product) => selectedBrands.includes(product.brand))
+        : baseProducts
+
+    const byPrice = byBrand.filter((product) => matchesPriceRange(product, selectedPriceRange))
+
+    return sortProducts(byPrice, sortBy)
+  }, [baseProducts, selectedBrands, selectedPriceRange, sortBy])
+
+  const { totalPages, safeCurrentPage, visibleProducts } = useMemo(
+    () => getVisibleProducts(filteredProducts, currentPage, PAGE_SIZE),
+    [currentPage, filteredProducts],
+  )
+  const isFilteredEmpty = baseProducts.length > 0 && filteredProducts.length === 0
+  const viewedProducts = useMemo(() => getViewedProducts(baseProducts, 4), [baseProducts])
+  const paginationPages = useMemo(() => buildPaginationPages(totalPages, safeCurrentPage), [safeCurrentPage, totalPages])
+
+  const handleToggleBrand = (brand) => {
+    setSelectedBrands((current) =>
+      current.includes(brand) ? current.filter((item) => item !== brand) : [...current, brand],
+    )
+    setCurrentPage(1)
+  }
+
+  const handlePriceRangeChange = (value) => {
+    setSelectedPriceRange(value)
+    setCurrentPage(1)
+  }
+
+  const handleSortChange = (value) => {
+    setSortBy(value)
+    setCurrentPage(1)
+  }
+
+  const handleResetFilters = () => {
+    setSelectedBrands([])
+    setSelectedPriceRange('all')
+    setSortBy('newest')
+    setCurrentPage(1)
+  }
+
+  const handleGoToPage = (page) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  }
+
+  if ((!query && remoteLoading) || (query && searchLoading)) {
+    return <div className="page-loader">Đang tải danh sách sản phẩm...</div>
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[32px] bg-white p-6 shadow-sm">
-        <SectionHeading
-          title="Danh sách sản phẩm"
-          description={query ? `Kết quả tìm kiếm cho "${query}"` : 'Lọc theo thương hiệu và tìm nhanh sản phẩm'}
+    <div className="category-page">
+      <CategoryBreadcrumb label={collectionMeta.label} />
+      <VoucherSection />
+
+      <div className="category-page__layout">
+        <CategorySidebar
+          brands={brandOptions}
+          selectedBrands={selectedBrands}
+          selectedPriceRange={selectedPriceRange}
+          onToggleBrand={handleToggleBrand}
+          onPriceRangeChange={handlePriceRangeChange}
+          onReset={handleResetFilters}
+          totalCount={baseProducts.length}
         />
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  activeCategory === category ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-                onClick={() => setActiveCategory(category)}
-              >
-                {category}
-              </button>
-            ))}
+
+        <div className="category-page__content">
+          <div className="category-page__title-block">
+            <h1>{collectionMeta.label}</h1>
           </div>
-          <div className="relative w-full max-w-sm">
-            <input
-              placeholder="Tìm sản phẩm"
-              value={localFilter}
-              onChange={(event) => setLocalFilter(event.target.value)}
-              className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none focus:border-red-500"
+
+          <CategorySortBar sortBy={sortBy} onSortByChange={handleSortChange} />
+
+          {isFilteredEmpty ? (
+            <CategoryEmptyState
+              title="Không tìm thấy sản phẩm phù hợp"
+              description="Không có sản phẩm nào trong danh sách hiện tại khớp với bộ lọc đã chọn."
+              onReset={handleResetFilters}
             />
-          </div>
+          ) : (
+            <>
+              <CategoryProductGrid products={visibleProducts} />
+
+              {totalPages > 1 ? (
+                <div className="category-page__pagination" aria-label="Chuyển trang">
+                  {safeCurrentPage > 1 ? (
+                    <button
+                      type="button"
+                      className="category-page__page category-page__page--arrow"
+                      onClick={() => handleGoToPage(safeCurrentPage - 1)}
+                      aria-label="Trang trước"
+                    >
+                      ‹
+                    </button>
+                  ) : null}
+
+                  {paginationPages.map((page, index) => {
+                    const previousPage = paginationPages[index - 1]
+                    const showEllipsis = index > 0 && page - previousPage > 1
+
+                    return (
+                      <span key={page}>
+                        {showEllipsis ? <span className="category-page__ellipsis">...</span> : null}
+                        <button
+                          type="button"
+                          className={`category-page__page${safeCurrentPage === page ? ' is-active' : ''}`}
+                          onClick={() => handleGoToPage(page)}
+                          aria-current={safeCurrentPage === page ? 'page' : undefined}
+                        >
+                          {page}
+                        </button>
+                      </span>
+                    )
+                  })}
+
+                  {safeCurrentPage < totalPages ? (
+                    <button
+                      type="button"
+                      className="category-page__page category-page__page--arrow"
+                      onClick={() => handleGoToPage(safeCurrentPage + 1)}
+                      aria-label="Trang tiếp theo"
+                    >
+                      ›
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
+      </div>
+
+      <section className="category-page__description section">
+        <SectionHeading title="Mô tả danh sách sản phẩm" />
+        <p>{collectionMeta.description}</p>
+        <p>
+          Hiện có {baseProducts.length} sản phẩm trong danh sách chung. Bạn có thể lọc theo thương hiệu, giá và sắp xếp
+          theo nhu cầu mua sắm.
+        </p>
       </section>
 
-      {query ? (
-        <SearchResults
-          key={query}
-          query={query}
-          activeCategory={activeCategory}
-          localFilter={localFilter}
-        />
-      ) : (
-        <ProductGrid products={filteredProducts} addToCart={addToCart} />
-      )}
+      <ViewedProductsSection products={viewedProducts} />
     </div>
   )
 }

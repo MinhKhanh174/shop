@@ -40,14 +40,19 @@ function CategoryMegaPanel({ categoryKey, remoteProducts }) {
 function MenuItemLink({ linkMode, item, onEnter, children }) {
   if (linkMode === 'route') {
     return (
-      <Link to={getCategoryCollectionPath(item.key)} className="menu-item__link" title={item.sidebarLabel} onMouseEnter={onEnter} onFocus={onEnter}>
+      <Link
+        to={getCategoryCollectionPath(item.key)}
+        className="menu-item__link"
+        title={item.sidebarLabel}
+        onMouseEnter={onEnter}
+      >
         {children}
       </Link>
     )
   }
 
   return (
-    <a href={item.href} className="menu-item__link" title={item.sidebarLabel} onMouseEnter={onEnter} onFocus={onEnter}>
+    <a href={item.href} className="menu-item__link" title={item.sidebarLabel} onMouseEnter={onEnter}>
       {children}
     </a>
   )
@@ -77,6 +82,7 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
   const [activeCategory, setActiveCategory] = useState(null)
   const [isMegaOpen, setIsMegaOpen] = useState(false)
   const closeTimerRef = useRef(null)
+  const closeDelayMs = 60
 
   const activeGroups = useMemo(() => {
     if (!activeCategory) return []
@@ -104,7 +110,12 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
     clearCloseTimer()
     closeTimerRef.current = window.setTimeout(() => {
       setIsMegaOpen(false)
-    }, 140)
+    }, closeDelayMs)
+  }
+
+  const handleLeaveCategoryMenu = () => {
+    clearCloseTimer()
+    setIsMegaOpen(false)
   }
 
   useEffect(() => {
@@ -137,7 +148,7 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
       className="category-menu"
       aria-label="Danh mục sản phẩm"
       onMouseEnter={openMegaPanel}
-      onMouseLeave={scheduleCloseMegaPanel}
+      onMouseLeave={handleLeaveCategoryMenu}
     >
       <nav className="h-100">
         <ul className="category-menu__menu navigation list-group list-group-flush scroll">
@@ -186,7 +197,7 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
       </nav>
 
       {isMegaOpen && hasActiveProducts ? (
-        <div className="category-menu__mega-shell" onMouseEnter={openMegaPanel} onMouseLeave={scheduleCloseMegaPanel}>
+        <div className="category-menu__mega-shell" onMouseEnter={openMegaPanel} onMouseLeave={handleLeaveCategoryMenu}>
           <CategoryMegaPanel categoryKey={activeCategory} remoteProducts={remoteProducts} />
         </div>
       ) : null}

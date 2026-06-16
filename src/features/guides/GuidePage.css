@@ -1,0 +1,109 @@
+.guide-page {
+  background: #fff;
+  padding: 0 0 24px;
+}
+
+.guide-page__container {
+  padding: 0;
+}
+
+.guide-page__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  color: #64748b;
+  font-size: 14px;
+  border-bottom: 1px solid #eceef3;
+}
+
+.guide-page__breadcrumb a {
+  color: #64748b;
+}
+
+.guide-page__card {
+  padding: 16px;
+}
+
+.guide-page__header {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px 20px;
+  border: 1px solid #eceef3;
+  background: linear-gradient(180deg, #ffffff, #fbfcfe);
+}
+
+.guide-page__eyebrow {
+  color: #ef1f1f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.guide-page__header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.guide-page__header p {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 900px;
+}
+
+.guide-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.guide-page__section {
+  border: 1px solid #eceef3;
+  background: #fff;
+  padding: 18px 20px;
+}
+
+.guide-page__section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #111827;
+}
+
+.guide-page__section-title h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.guide-page__steps,
+.guide-page__notes {
+  margin: 0;
+  padding-left: 20px;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.guide-page__steps li + li,
+.guide-page__notes li + li {
+  margin-top: 10px;
+}
+
+.guide-page__aside {
+  background: #fbfcfe;
+}
+
+@media (max-width: 900px) {
+  .guide-page__layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,41 +1,57 @@
-import { useEffect, useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { BadgeCheck, ShieldCheck, Star, Truck } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Minus,
+  Plus,
+  Truck,
+  RotateCcw,
+  ShoppingCart,
+  BarChart3,
+  Gift,
+  BadgePercent,
+} from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useHomeData } from '../hooks/useHomeData'
 import { useCart } from '../hooks/useCart'
-import { SectionHeading } from '../shared/ui/SectionHeading'
-import Card from '../shared/ui/Card'
 import { ROUTES } from '../config/routes'
 import { formatCurrency } from '../utils/formatCurrency'
 import { mapProductsToCards } from '../utils/productMapper'
 import { getViewedProducts, saveViewedProductId } from '../utils/viewedProducts'
 import { getCategoryCollectionPath } from '../utils/categoryRoutes'
-import { ProductBreadcrumb } from '../components/product-detail/ProductBreadcrumb'
-import { ProductGallery } from '../components/product-detail/ProductGallery'
-import { ProductInfoPanel } from '../components/product-detail/ProductInfoPanel'
-import { ProductPromoSidebar } from '../components/product-detail/ProductPromoSidebar'
-import { RelatedProductsSection } from '../components/product-detail/RelatedProductsSection'
-import { ProductSkeleton } from '../components/product-detail/ProductSkeleton'
-import { ViewedProductsSection } from '../features/category/components/ViewedProductsSection'
+import { buildBlogArticlePath, getRelatedBlogArticleForProduct } from '../utils/blogArticles'
+import { ProductCard } from '../shared/ui/ProductCard'
+import { CopyCodeButton } from '../shared/ui/CopyCodeButton'
 import { useProductDetail } from '../features/product/hooks/useProductDetail'
-
-function buildCategoryLabel(categorySlug, categoryItems) {
-  const matched = categoryItems.find((item) => item.key === categorySlug)
-  if (matched?.sidebarLabel) {
-    return matched.sidebarLabel
-  }
-
-  return String(categorySlug || '')
-    .split('-')
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
+import { coupons } from '../data/siteConfig'
+import {
+  buildCategoryLabel,
+  buildProductCode,
+  buildRelatedProducts,
+  resolveGalleryImages,
+} from '../features/product/productDetail.utils'
+import {
+  CouponCard,
+  ProductBreadcrumb,
+  ProductDetailSkeleton,
+  ProductSummaryStrip,
+} from '../features/product/components/ProductDetailBlocks'
+import './ProductDetailPage.css'
 
 function ProductDetailContent({ productId }) {
+  const navigate = useNavigate()
   const { product, loading } = useProductDetail(productId)
   const { products: remoteProducts = [], categoryItems = [] } = useHomeData()
   const { addToCart } = useCart()
+  const [quantity, setQuantity] = useState(1)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0)
+  const [selectedStorageIndex, setSelectedStorageIndex] = useState(0)
+  const [isSpecsOpen, setIsSpecsOpen] = useState(false)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const maxQuantity = Number.isFinite(Number(product?.source?.stock)) ? Math.max(1, Number(product.source.stock)) : null
 
   useEffect(() => {
     if (product) {
@@ -43,137 +59,500 @@ function ProductDetailContent({ productId }) {
     }
   }, [product])
 
-  const relatedProducts = useMemo(() => {
-    if (!product) {
-      return []
+  useEffect(() => {
+    setQuantity(1)
+    setActiveImageIndex(0)
+    setSelectedColorIndex(0)
+    setSelectedStorageIndex(0)
+    setIsSpecsOpen(false)
+  }, [productId])
+
+  useEffect(() => {
+    if (maxQuantity !== null) {
+      setQuantity((current) => Math.min(current, maxQuantity))
+    }
+  }, [maxQuantity])
+
+  const galleryImages = useMemo(() => resolveGalleryImages(product), [product])
+  const activeImage = galleryImages[activeImageIndex] || galleryImages[0]
+  const catalogProducts = useMemo(() => mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' }), [remoteProducts])
+  const relatedProducts = useMemo(() => buildRelatedProducts(remoteProducts, product), [remoteProducts, product])
+  const viewedProducts = useMemo(() => getViewedProducts(catalogProducts, 4), [catalogProducts])
+  const samePriceProducts = useMemo(() => {
+    if (!product) return []
+
+    const currentPrice = Number(product.price ?? 0)
+    const candidates = catalogProducts.filter((item) => String(item.id) !== String(product.id))
+
+    if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+      return candidates.slice(0, 5)
     }
 
-    const currentCategory = String(product.source?.category ?? '').toLowerCase()
-    const currentBrand = String(product.brand ?? '').toLowerCase()
-    const mappedProducts = mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' })
+    return candidates
+      .map((item) => ({
+        item,
+        diff: Math.abs(Number(item.price ?? 0) - currentPrice) / currentPrice,
+      }))
+      .filter(({ diff }) => diff <= 0.25)
+      .sort((left, right) => left.diff - right.diff)
+      .map(({ item }) => item)
+      .slice(0, 5)
+  }, [catalogProducts, product])
+  const relatedArticle = useMemo(() => getRelatedBlogArticleForProduct(product), [product])
+  const hasMultipleImages = galleryImages.length > 1
 
-    return mappedProducts
-      .filter((item) => String(item.id) !== String(product.id))
-      .filter((item) => {
-        const itemCategory = String(item.category ?? '').toLowerCase()
-        const itemBrand = String(item.brand ?? '').toLowerCase()
+  const showPreviousImage = () => {
+    if (!galleryImages.length) return
+    setActiveImageIndex((current) => (current - 1 + galleryImages.length) % galleryImages.length)
+  }
 
-        return itemCategory === currentCategory || itemBrand === currentBrand
-      })
-      .slice(0, 8)
-  }, [product, remoteProducts])
-
-  const viewedProducts = useMemo(() => {
-    if (!remoteProducts.length) {
-      return []
-    }
-
-    return getViewedProducts(mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' }), 4).filter(
-      (item) => String(item.id) !== String(product?.id ?? ''),
-    )
-  }, [product?.id, remoteProducts])
+  const showNextImage = () => {
+    if (!galleryImages.length) return
+    setActiveImageIndex((current) => (current + 1) % galleryImages.length)
+  }
 
   if (loading) {
-    return <ProductSkeleton />
+    return <ProductDetailSkeleton />
   }
 
   if (!product) {
     return (
-      <div className="space-y-6 py-4">
-        <ProductBreadcrumb
-          items={[
-            { label: 'Trang chủ', to: '/' },
-            { label: 'Sản phẩm', to: ROUTES.PRODUCTS },
-            { label: 'Không tìm thấy' },
-          ]}
-        />
-        <Card className="p-10 text-center">
-          <p className="text-lg font-semibold text-slate-900">Sản phẩm không tồn tại</p>
-          <Link
-            to={ROUTES.PRODUCTS}
-            className="mt-4 inline-flex rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-          >
-            Quay về danh sách
-          </Link>
-        </Card>
+      <div className="pd-page">
+        <div className="pd-page__container">
+          <ProductBreadcrumb
+            items={[
+              { label: 'Trang chủ', to: '/' },
+              { label: 'Sản phẩm', to: ROUTES.PRODUCTS },
+              { label: 'Không tìm thấy' },
+            ]}
+          />
+
+          <div className="pd-empty">
+            <p className="pd-empty__title">Sản phẩm không tồn tại</p>
+            <p className="pd-empty__text">Trang chi tiết này không còn dữ liệu hoặc sản phẩm đã bị xóa.</p>
+            <Link to={ROUTES.PRODUCTS} className="pd-empty__button">
+              Quay về danh sách
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
 
   const categoryLabel = buildCategoryLabel(String(product.source?.category ?? ''), categoryItems)
   const discountPercentage = Number(product.source?.discountPercentage ?? 0)
-  const oldPrice =
-    discountPercentage > 0 ? Math.round(Number(product.price) / (1 - discountPercentage / 100)) : null
+  const oldPrice = discountPercentage > 0 ? Math.round(Number(product.price) / (1 - discountPercentage / 100)) : null
+  const productCode = buildProductCode(product)
+  const isDellBrand = String(product.brand ?? '').trim().toLowerCase() === 'dell'
+  const isDellProductCode = String(productCode).toUpperCase() === 'DELL.NEW.DELL.XPS.13.9300.LAPTOP'
+  const colorOptions = galleryImages.slice(0, 2).length > 0 ? galleryImages.slice(0, 2) : [product.image, product.image].filter(Boolean)
+  const storageOptions = ['128GB', '256GB', '512GB']
+
+  const handleBuyNow = () => {
+    addToCart(product)
+    navigate(ROUTES.CART)
+  }
+
+  const handleAddToCart = () => {
+    setIsAddingToCart(true)
+
+    try {
+      addToCart(product)
+      toast.success(`Đã thêm ${product.name} vào giỏ`)
+    } catch {
+      toast.error('Không thể thêm vào giỏ. Vui lòng thử lại.')
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+
+  const promoLines = [
+    { text: 'Nhập mã EGANY thêm 5% đơn hàng ', copyLabel: 'Sao chép', copyValue: 'EGANY' },
+    'Giảm giá 10% khi mua từ 5 sản phẩm',
+    'Tặng phiếu mua hàng khi mua từ 500K',
+  ]
+
+  const specsEntries = Object.entries(product.specs ?? {})
 
   return (
-    <div className="space-y-8 py-4">
-      <ProductBreadcrumb
-        items={[
-          { label: 'Trang chủ', to: '/' },
-          { label: categoryLabel, to: getCategoryCollectionPath(String(product.source?.category ?? '')) },
-          { label: product.name },
-        ]}
-      />
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_320px]">
-        <ProductGallery product={product} />
-
-        <ProductInfoPanel
-          product={product}
-          categoryLabel={categoryLabel}
-          oldPrice={oldPrice}
-          formatCurrency={formatCurrency}
-          onAddToCart={() => addToCart(product)}
+    <div className="pd-page">
+      <div className="pd-page__container">
+        <ProductBreadcrumb
+          items={[
+            { label: 'Trang chủ', to: '/' },
+            { label: categoryLabel, to: getCategoryCollectionPath(String(product.source?.category ?? '')) },
+            { label: product.name },
+          ]}
         />
 
-        <ProductPromoSidebar />
-      </section>
+        <section className="pd-hero">
+          <div className="pd-panel pd-panel--gallery">
+            <div className="pd-gallery">
+              <div className="pd-gallery__stage">
+                {hasMultipleImages ? (
+                  <button
+                    type="button"
+                    className="pd-gallery__nav pd-gallery__nav--prev"
+                    onClick={showPreviousImage}
+                    aria-label="Ảnh trước"
+                  >
+                    <ChevronLeft size={26} />
+                  </button>
+                ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
-        <Card className="p-6 sm:p-8">
-          <SectionHeading title="Đặc điểm nổi bật" />
-          <div className="space-y-4 text-sm leading-7 text-slate-600">
-            <p className="text-base text-slate-700">{product.description}</p>
-            <p>
-              {product.name} thuộc nhóm {categoryLabel.toLowerCase()}. Sản phẩm phù hợp cho người dùng cần một lựa chọn
-              cân bằng giữa hiệu năng, giá bán và độ tin cậy.
-            </p>
-            <ul className="grid gap-2 pt-2 sm:grid-cols-2">
-              <li className="flex items-center gap-2">
-                <BadgeCheck size={16} className="text-red-600" />
-                <span>Thương hiệu: {product.brand || 'Đang cập nhật'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Star size={16} className="text-amber-500" />
-                <span>Đánh giá: {product.source?.rating ?? '4.5'}/5</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <ShieldCheck size={16} className="text-sky-600" />
-                <span>Bảo hành và hỗ trợ đầy đủ</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Truck size={16} className="text-emerald-600" />
-                <span>Giao hàng nhanh toàn quốc</span>
-              </li>
-            </ul>
-          </div>
-        </Card>
+                <div className="pd-gallery__main">
+                  {activeImage ? (
+                    <img src={activeImage} alt={product.name} />
+                  ) : (
+                    <div className="pd-gallery__placeholder">img</div>
+                  )}
+                </div>
 
-        <Card className="p-6 sm:p-8">
-          <SectionHeading title="Thông số kỹ thuật" />
-          <div className="space-y-3">
-            {Object.entries(product.specs ?? {}).map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-4 border-b border-slate-100 py-3 last:border-b-0">
-                <span className="text-sm text-slate-500">{label}</span>
-                <span className="text-sm font-semibold text-slate-900 text-right">{value}</span>
+                {hasMultipleImages ? (
+                  <button
+                    type="button"
+                    className="pd-gallery__nav pd-gallery__nav--next"
+                    onClick={showNextImage}
+                    aria-label="Ảnh tiếp theo"
+                  >
+                    <ChevronRight size={26} />
+                  </button>
+                ) : null}
               </div>
-            ))}
-          </div>
-        </Card>
-      </section>
 
-      <RelatedProductsSection title="Sản phẩm thường mua cùng" products={relatedProducts} />
-      <ViewedProductsSection products={viewedProducts} />
+              <div className="pd-gallery__thumbs">
+                {galleryImages.slice(0, 4).map((image, index) => {
+                  const isActive = index === activeImageIndex
+
+                  return (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      className={`pd-gallery__thumb${isActive ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setActiveImageIndex(index)
+                        if (index < colorOptions.length) {
+                          setSelectedColorIndex(index)
+                        }
+                      }}
+                    >
+                      <img src={image} alt="" />
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="pd-share">
+                <span className="pd-share__label">Chia sẻ</span>
+                <button type="button" className="pd-share__icon pd-share__icon--fb">f</button>
+                <button type="button" className="pd-share__icon pd-share__icon--pin">p</button>
+                <button type="button" className="pd-share__icon pd-share__icon--tw">t</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pd-panel pd-panel--info">
+            <div className="pd-info">
+              <div className="pd-info__head">
+                <h1 className={isDellBrand ? 'pd-info__accent-blue' : ''}>{product.name}</h1>
+                <div className="pd-info__meta">
+                  <span>
+                    <span className="pd-info__label">Thương hiệu:</span>{' '}
+                    <span className={isDellBrand ? 'pd-info__accent-blue' : ''}>{product.brand || 'Techstore'}</span>
+                  </span>
+                  <span>
+                    <span className="pd-info__label">Mã sản phẩm:</span>{' '}
+                    <span className={isDellProductCode ? 'pd-info__accent-blue' : ''}>{productCode}</span>
+                  </span>
+                </div>
+                <Link to={`${ROUTES.COMPARE}?ids=${product.id}`} className="pd-info__compare">
+                  <BarChart3 size={15} />
+                  <span>So sánh</span>
+                </Link>
+              </div>
+
+              <div className="pd-price-box">
+                <div className="pd-info__price-row">
+                  <strong className="pd-info__price">{product.priceText ?? formatCurrency(product.price)}</strong>
+                  {oldPrice ? <span className="pd-info__old-price">{formatCurrency(oldPrice)}</span> : null}
+                </div>
+              </div>
+
+              <div className="pd-info__installment">Trả góp 0%</div>
+
+              <div className="pd-info__gift-banner">
+                <span>Tặng gói bảo hành Gold trị giá 300K</span>
+              </div>
+
+              <div className="pd-info__promo">
+                <div className="pd-info__promo-title">
+                  <Gift size={16} />
+                  <span>KHUYẾN MÃI - ƯU ĐÃI</span>
+                </div>
+                <ul className="pd-info__promo-list">
+                  {promoLines.map((line) => (
+                    <li key={typeof line === 'string' ? line : line.text}>
+                      {typeof line === 'string' ? (
+                        line
+                      ) : (
+                        <>
+                          <span>{line.text}</span>
+                          <CopyCodeButton value={line.copyValue} className="pd-promo-copy">
+                            {line.copyLabel}
+                          </CopyCodeButton>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="pd-info__section">
+                <p className="pd-info__section-label">Màu sắc:</p>
+                <div className="pd-colors">
+                  {colorOptions.map((image, index) => (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      className={`pd-color${selectedColorIndex === index ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setSelectedColorIndex(index)
+                        setActiveImageIndex(index)
+                      }}
+                    >
+                      <img src={image} alt="" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pd-info__section">
+                <p className="pd-info__section-label">Dung lượng:</p>
+                <div className="pd-storage">
+                  {storageOptions.map((storage, index) => (
+                    <label key={storage} className={`pd-storage__option${selectedStorageIndex === index ? ' is-active' : ''}`}>
+                      <input
+                        id={`swatch-${index + 1}-${storage.toLowerCase()}`}
+                        type="radio"
+                        name="storage"
+                        value={storage}
+                        checked={selectedStorageIndex === index}
+                        onChange={() => setSelectedStorageIndex(index)}
+                      />
+                      <span>{storage}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pd-info__section pd-info__section--qty">
+                <p className="pd-info__section-label">Số lượng:</p>
+                <div className="pd-qty" aria-label="Số lượng sản phẩm">
+                  <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
+                    <Minus size={14} />
+                  </button>
+                  <span>{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuantity((current) => {
+                        if (maxQuantity === null) return current + 1
+                        return Math.min(maxQuantity, current + 1)
+                      })
+                    }
+                    disabled={maxQuantity !== null && quantity >= maxQuantity}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pd-info__cta-stack">
+                <button type="button" className="pd-btn pd-btn--primary" onClick={handleBuyNow}>
+                  <span className="pd-btn__title">
+                    <ShoppingCart size={16} />
+                    <span>MUA NGAY</span>
+                  </span>
+                  <small>Giao tận nơi hoặc nhận tại cửa hàng</small>
+                </button>
+
+                <div className="pd-info__cta-row">
+                  <button type="button" className="pd-btn pd-btn--secondary pd-btn--add-cart" onClick={handleAddToCart}>
+                    <span>THÊM VÀO GIỎ</span>
+                  </button>
+                  <Link to={ROUTES.GUIDE_INSTALLMENT} className="pd-btn pd-btn--secondary pd-btn--installment">
+                    <span>MUA TRẢ GÓP</span>
+                    <small>Duyệt hồ sơ trong 5 phút</small>
+                  </Link>
+                </div>
+
+                <p className="pd-info__hotline">Gọi đặt mua <strong>1800 0000</strong> (7:30 - 22:00)</p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="pd-panel pd-panel--sidebar">
+            <div className="pd-sidebar">
+              {coupons.map((coupon) => (
+                <CouponCard key={coupon.code} coupon={coupon} />
+              ))}
+
+              <div className="pd-benefits">
+                <div className="pd-benefits__item">
+                  <Truck size={16} />
+                  <span>Giao hàng miễn phí trong 24h (chỉ áp dụng khu vực nội thành)</span>
+                </div>
+                <div className="pd-benefits__item">
+                  <BadgePercent size={16} />
+                  <span>Trả góp lãi suất 0% qua thẻ tín dụng Visa, Mastercard, JCB</span>
+                </div>
+                <div className="pd-benefits__item">
+                  <RotateCcw size={16} />
+                  <span>Đổi trả miễn phí trong 30 ngày</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section className="pd-lower">
+          <article className="pd-card pd-card--feature">
+            <h2>ĐẶC ĐIỂM NỔI BẬT</h2>
+            <div className="pd-card__body">
+              <p>{relatedArticle?.summary ?? product.description}</p>
+
+              {relatedArticle?.sections?.[0] ? (
+                <>
+                  <h3>{relatedArticle.sections[0].heading}</h3>
+                  <p>{relatedArticle.sections[0].paragraphs?.[0] ?? product.description}</p>
+                </>
+              ) : null}
+
+              {relatedArticle?.sections?.[1] ? (
+                <>
+                  <h3>{relatedArticle.sections[1].heading}</h3>
+                  <p>{relatedArticle.sections[1].paragraphs?.[0] ?? product.description}</p>
+                </>
+              ) : null}
+            </div>
+            <Link className="pd-more" to={buildBlogArticlePath(relatedArticle)}>
+              <span>+</span>
+              <span>Xem thêm</span>
+            </Link>
+          </article>
+
+          <article className="pd-card pd-card--spec">
+            <h2>THÔNG SỐ KỸ THUẬT</h2>
+            <div className="pd-specs">
+              {specsEntries.map(([label, value]) => (
+                <div key={label} className="pd-specs__row">
+                  <span className="pd-specs__label">{label}</span>
+                  <span className="pd-specs__value">{value}</span>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="pd-more" onClick={() => setIsSpecsOpen(true)}>
+              <span>+</span>
+              <span>Xem thêm</span>
+            </button>
+          </article>
+        </section>
+
+        <ProductSummaryStrip
+          product={product}
+          image={activeImage}
+          colorOptions={colorOptions}
+          storageOptions={storageOptions}
+          selectedColorIndex={selectedColorIndex}
+          selectedStorageIndex={selectedStorageIndex}
+          quantity={quantity}
+          maxQuantity={maxQuantity}
+          oldPrice={oldPrice}
+          discountPercentage={discountPercentage}
+          onColorChange={(index) => {
+            if (Number.isInteger(index) && index >= 0) {
+              setSelectedColorIndex(index)
+              setActiveImageIndex(index)
+            }
+          }}
+          onStorageChange={(index) => {
+            if (Number.isInteger(index) && index >= 0) {
+              setSelectedStorageIndex(index)
+            }
+          }}
+          onDecrease={() => setQuantity((current) => Math.max(1, current - 1))}
+          onIncrease={() =>
+            setQuantity((current) => {
+              if (maxQuantity === null) return current + 1
+              return Math.min(maxQuantity, current + 1)
+            })
+          }
+          onAddToCart={handleAddToCart}
+        />
+
+        {relatedProducts.length > 0 ? (
+          <section className="pd-related">
+            <h2 className="pd-related__title">SẢN PHẨM THƯỜNG MUA CÙNG</h2>
+            <div className="pd-product-grid pd-product-grid--related">
+              {relatedProducts.map((item) => (
+                <ProductCard key={item.id} product={item} compact />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {samePriceProducts.length > 0 ? (
+          <section className="pd-related">
+            <h2 className="pd-related__title">SẢN PHẨM CÙNG PHÂN KHÚC GIÁ</h2>
+            <div className="pd-product-grid pd-product-grid--same-price">
+              {samePriceProducts.map((item) => (
+                <ProductCard key={item.id} product={item} compact />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {viewedProducts.length > 0 ? (
+          <section className="pd-related">
+            <h2 className="pd-related__title">SẢN PHẨM ĐÃ XEM</h2>
+            <div className="pd-product-grid pd-product-grid--viewed">
+              {viewedProducts.map((item) => (
+                <ProductCard key={item.id} product={item} compact />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
+
+      {isSpecsOpen ? (
+        <div className="pd-specs-modal" role="presentation" onClick={() => setIsSpecsOpen(false)}>
+          <div
+            className="pd-specs-modal__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pd-specs-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="pd-specs-modal__header">
+              <h3 id="pd-specs-modal-title">Thông số kỹ thuật</h3>
+              <button type="button" className="pd-specs-modal__close" aria-label="Đóng" onClick={() => setIsSpecsOpen(false)}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="pd-specs-modal__body">
+              <div className="pd-specs-modal__table">
+                {specsEntries.map(([label, value]) => (
+                  <div key={label} className="pd-specs-modal__row">
+                    <div className="pd-specs-modal__label">{label}</div>
+                    <div className="pd-specs-modal__value">{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -1,0 +1,22 @@
+name: Techstore Config
+version: 1.0.0
+schema: v1
+
+# Định nghĩa các mô hình AI sử dụng trong Chat và Sửa code
+models:
+  - name: Gemini 1.5 Pro
+    provider: gemini
+    model: gemini-1.5-pro-latest
+    apiKey: YOUR_GEMINI_API_KEY_HERE # Dán API key của bạn vào đây
+
+  - name: Gemini 2.0 Flash
+    provider: gemini
+    model: gemini-2.0-flash-exp
+    apiKey: YOUR_GEMINI_API_KEY_HERE # Dán API key của bạn vào đây
+
+# Định nghĩa mô hình tự động gợi ý code khi đang gõ (Tab Autocomplete)
+tabAutocompleteModel:
+  name: Gemini 2.0 Flash Auto
+  provider: gemini
+  model: gemini-2.0-flash-exp
+  apiKey: YOUR_GEMINI_API_KEY_HERE # Dán API key của bạn vào đây

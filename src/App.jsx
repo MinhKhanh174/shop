@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { SiteHeader } from './components/layout/SiteHeader'
 import { SubNav } from './components/layout/SubNav'
 import { SiteFooter } from './shared/layout/SiteFooter'
+import { CompareTray } from './shared/ui/CompareTray'
 import { HomeDataProvider } from './context/HomeDataProvider'
 import { ROUTES } from './config/routes'
 import { useRouteCategorySync } from './hooks/useRouteCategorySync'
@@ -14,6 +15,12 @@ const HomePage = lazy(() => import('./features/home/HomePage'))
 const CategoryPage = lazy(() => import('./features/category/CategoryPage'))
 const ProductListPage = lazy(() => import('./features/product/ProductListPage'))
 const ProductDetailPage = lazy(() => import('./features/product/ProductDetailPage'))
+const NewsPage = lazy(() => import('./features/news/NewsPage'))
+const TipsPage = lazy(() => import('./features/tips/TipsPage'))
+const BlogDetailPage = lazy(() => import('./features/blog/BlogDetailPage'))
+const SellUsedGuidePage = lazy(() => import('./features/guides/SellUsedGuidePage'))
+const BuyOnlineGuidePage = lazy(() => import('./features/guides/BuyOnlineGuidePage'))
+const InstallmentGuidePage = lazy(() => import('./features/guides/InstallmentGuidePage'))
 const ComparePage = lazy(() => import('./features/product/ComparePage'))
 const CartPage = lazy(() => import('./features/cart/CartPage'))
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
@@ -89,6 +96,12 @@ function AppShell() {
               <Route path={ROUTES.COLLECTION} element={<CategoryPage />} />
               <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
               <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
+              <Route path={ROUTES.NEWS} element={<NewsPage />} />
+              <Route path={ROUTES.TIPS} element={<TipsPage />} />
+              <Route path={ROUTES.BLOG_DETAIL} element={<BlogDetailPage />} />
+              <Route path={ROUTES.GUIDE_SELL_USED} element={<SellUsedGuidePage />} />
+              <Route path={ROUTES.GUIDE_BUY_ONLINE} element={<BuyOnlineGuidePage />} />
+              <Route path={ROUTES.GUIDE_INSTALLMENT} element={<InstallmentGuidePage />} />
               <Route path={ROUTES.COMPARE} element={<ComparePage />} />
               <Route path={ROUTES.CART} element={<CartPage />} />
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -97,6 +110,7 @@ function AppShell() {
           </Suspense>
         </div>
       </main>
+      <CompareTray />
       <SiteFooter />
     </div>
   )

@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { supportLinks } from '../../data/siteConfig'
-import { ROUTES } from '../../config/routes'
 import { CategoryMenu } from './CategoryMenu'
 import { useHomeData } from '../../hooks/useHomeData'
 import { useHomeStore } from '../../store/useHomeStore'
@@ -17,6 +16,7 @@ export function SubNav() {
   const toggleCategoryMenu = useHomeStore((state) => state.toggleCategoryMenu)
   const isMenuActive = isHomeRoute || isCategoryMenuOpen
   const closeTimerRef = useRef(null)
+  const closeDelayMs = 60
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current) {
@@ -42,7 +42,7 @@ export function SubNav() {
     clearCloseTimer()
     closeTimerRef.current = window.setTimeout(() => {
       closeCategoryMenu()
-    }, 140)
+    }, closeDelayMs)
   }
 
   useEffect(() => {
@@ -77,10 +77,10 @@ export function SubNav() {
 
       <div className="support-links">
         {supportLinks.map((item) => (
-          <a key={item.label} href={isHomeRoute ? '#hero' : ROUTES.HOME}>
+          <Link key={item.label} to={item.to ?? ROUTES.HOME}>
             <item.icon size={20} strokeWidth={2} />
             <span>{item.label}</span>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

@@ -8,41 +8,39 @@ export const topActions = [
     id: 'account',
     label: 'Tài khoản',
     iconKey: 'user',
-    links: [
-      { label: 'Đăng nhập', to: ROUTES.LOGIN },
-    ],
+    links: [{ label: 'Đăng nhập', to: ROUTES.LOGIN }],
   },
 ]
 
 export const supportLinks = [
-  { label: 'Hướng dẫn bán máy cũ', icon: Smartphone },
-  { label: 'Hướng dẫn mua online', icon: ShoppingCart },
-  { label: 'Hướng dẫn trả góp', icon: CreditCard },
+  { label: 'Hướng dẫn bán máy cũ', icon: Smartphone, to: ROUTES.GUIDE_SELL_USED },
+  { label: 'Hướng dẫn mua online', icon: ShoppingCart, to: ROUTES.GUIDE_BUY_ONLINE },
+  { label: 'Hướng dẫn trả góp', icon: CreditCard, to: ROUTES.GUIDE_INSTALLMENT },
 ]
 
 export const coupons = [
   {
     code: 'EGA50',
     title: 'NHẬP MÃ: EGA50',
-    description: 'Giảm 50% cho đơn hàng tối thiểu 500K',
+    description: 'Giảm 50% cho đơn hàng giá trị tối thiểu 500K. Mã giảm tối đa 300K',
     condition: 'Điều kiện',
   },
   {
     code: 'EGA15',
     title: 'NHẬP MÃ: EGA15',
-    description: 'Giảm 15% cho đơn hàng tối thiểu 500K',
+    description: 'Giảm 15% cho đơn hàng giá trị tối thiểu 500K. Mã giảm tối đa 250K',
     condition: 'Điều kiện',
   },
   {
     code: 'EGA99K',
     title: 'NHẬP MÃ: EGA99K',
-    description: 'Giảm 99K cho đơn hàng tối thiểu 1 triệu',
+    description: 'Mã giảm 99k cho đơn hàng tối thiểu 1 triệu. Tối đa 1 mã giảm giá/đơn hàng.',
     condition: 'Điều kiện',
   },
   {
     code: 'FREESHIP',
     title: 'NHẬP MÃ: FREESHIP',
-    description: 'Miễn phí vận chuyển cho đơn từ 500K',
+    description: 'Miễn phí vận chuyển cho đơn hàng từ 500K. Áp dụng cho khu vực Tp.HCM',
     condition: 'Điều kiện',
   },
 ]
@@ -100,7 +98,7 @@ export const articles = [
   {
     id: 'article-8',
     category: 'KINH NGHIỆM HAY - MẸO VẶT',
-    title: 'Pin sạc dự phòng - Hành trang không thể thiếu cho mỗi chuyến đi',
+    title: 'Pin sạc dự phòng - Hành trang không thể thiếu cho mọi chuyến đi',
     date: 'Thứ Ba, 21/12/2021',
     summary: 'Cùng xem những tiêu chí chọn mua pin sạc dự phòng phù hợp với nhu cầu thực tế.',
   },

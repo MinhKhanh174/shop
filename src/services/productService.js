@@ -3,7 +3,7 @@ import { formatCurrency } from '../utils/currency.js'
 import { filterTechProducts } from '../utils/productMapper.js'
 
 const PRODUCT_SELECT =
-  'id,title,price,discountPercentage,brand,category,thumbnail,images,stock,rating,description'
+  'id,title,sku,price,discountPercentage,brand,category,thumbnail,images,stock,rating,description'
 
 function normalizePrice(value) {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -20,6 +20,7 @@ function mapApiProduct(product) {
     id: product.id,
     name: product.title ?? 'Sản phẩm',
     brand: product.brand ?? '',
+    sku: product.sku ?? '',
     price,
     image: product.thumbnail ?? product.images?.[0] ?? null,
     description: product.description ?? '',

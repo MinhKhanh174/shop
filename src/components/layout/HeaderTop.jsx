@@ -32,6 +32,7 @@ export function HeaderTop({ isScrolled = false }) {
   const [isCartPreviewOpen, setIsCartPreviewOpen] = useState(false)
   const closeTimerRef = useRef(null)
   const cartPreviewTimerRef = useRef(null)
+  const closeDelayMs = 60
 
   const clearHeaderMenuTimer = () => {
     if (closeTimerRef.current) {
@@ -62,7 +63,7 @@ export function HeaderTop({ isScrolled = false }) {
       if (!isHomeRoute) {
         closeCategoryMenu()
       }
-    }, 120)
+    }, closeDelayMs)
   }
 
   useEffect(() => {
@@ -94,7 +95,6 @@ export function HeaderTop({ isScrolled = false }) {
             className={`catalog-button catalog-button--header header-brand-swap__catalog${isScrolled ? ' is-visible' : ''}`}
             onClick={handleCatalogClick}
             onMouseEnter={openHeaderMenu}
-            onFocus={openHeaderMenu}
             aria-expanded={isHomeRoute || isCategoryMenuOpen || isHeaderMenuOpen}
             aria-controls="category-menu"
             aria-disabled={isHomeRoute}
@@ -178,7 +178,9 @@ export function HeaderTop({ isScrolled = false }) {
                           <img src={item.image} alt={item.name} className="cart-preview__thumb" />
                           <div className="cart-preview__meta">
                             <p>{item.name}</p>
-                            <span>{item.brand || ' '} {item.quantity ? `x ${item.quantity}` : ''}</span>
+                            <span>
+                              {item.brand || ' '} {item.quantity ? `x ${item.quantity}` : ''}
+                            </span>
                             <strong>{formatCurrency((Number(item.price) || 0) * (Number(item.quantity) || 0))}</strong>
                           </div>
                         </div>

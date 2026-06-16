@@ -1,5 +1,4 @@
-import { SectionHeading } from '../../../shared/ui/SectionHeading'
-import { CategoryProductGrid } from './CategoryProductGrid'
+import { ProductRail } from '../../../shared/ui/ProductRail'
 
 export function ViewedProductsSection({ products = [] }) {
   if (!products.length) {
@@ -7,9 +6,6 @@ export function ViewedProductsSection({ products = [] }) {
   }
 
   return (
-    <section className="category-viewed-products">
-      <SectionHeading title="Sản phẩm đã xem" />
-      <CategoryProductGrid products={products} />
-    </section>
+    <ProductRail title="Sản phẩm đã xem" products={products} className="category-viewed-products" />
   )
 }

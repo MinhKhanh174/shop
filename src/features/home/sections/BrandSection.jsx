@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import { ROUTES } from '../../../config/routes'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import sonyLogo from '../../../assets/ThuongHieuSP/SONY.png'
 import brand2 from '../../../assets/ThuongHieuSP/brand_2.webp'
@@ -37,9 +39,9 @@ export function BrandSection() {
       <SectionHeading eyebrow="Thương hiệu sản phẩm" title="THƯƠNG HIỆU SẢN PHẨM" />
       <div className="brand-logo-grid" aria-label="Thương hiệu sản phẩm">
         {brandLogos.map((brand) => (
-          <div key={brand.name} className="brand-logo">
+          <Link key={brand.name} className="brand-logo" to={ROUTES.PRODUCTS}>
             <img className="brand-logo__image" src={brand.src} alt={brand.name} loading="lazy" />
-          </div>
+          </Link>
         ))}
       </div>
     </section>

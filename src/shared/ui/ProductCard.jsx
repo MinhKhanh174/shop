@@ -5,12 +5,14 @@ import { BarChart3, Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
 import { useCartStore } from '../../store/useCartStore'
-import { ROUTES } from '../../config/routes'
+import { useCompareStore } from '../../store/useCompareStore'
+import { AddToCartButton } from './AddToCartButton'
 
 export function ProductCard({ product, compact = false }) {
   const [isAdding, setIsAdding] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const addToCart = useCartStore((state) => state.addToCart)
+  const addToCompare = useCompareStore((state) => state.addToCompare)
   const navigate = useNavigate()
 
   const handleAddToCart = () => {
@@ -26,8 +28,7 @@ export function ProductCard({ product, compact = false }) {
     }
   }
 
-  const detailPath = ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
-  const comparePath = `${ROUTES.COMPARE}?ids=${product.id}`
+  const detailPath = `/products/${product.id}`
   const primaryImage = product.image ?? null
   const secondaryImage = product.secondaryImage ?? product.source?.images?.[1] ?? null
   const hasSecondaryImage = Boolean(primaryImage && secondaryImage)
@@ -77,14 +78,18 @@ export function ProductCard({ product, compact = false }) {
             >
               <Search size={16} />
             </Link>
-            <Link
-              to={comparePath}
-              onClick={stopCardClick}
+            <button
+              type="button"
+              onClick={(event) => {
+                stopCardClick(event)
+                addToCompare(product)
+                toast.success(`Đã thêm ${product.name} vào so sánh`)
+              }}
               className="product-card__hover-action"
               aria-label={`So sánh ${product.name}`}
             >
               <BarChart3 size={16} />
-            </Link>
+            </button>
           </div>
 
           {primaryImage ? (
@@ -116,19 +121,18 @@ export function ProductCard({ product, compact = false }) {
 
         <div className="product-card__price-row">
           <span className="product-card__price">{formatCurrency(product.price)}</span>
-          <button
-            type="button"
+          <AddToCartButton
             className="product-card__cta"
+            icon={Plus}
+            loading={isAdding}
+            ariaLabel={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
             onClick={(event) => {
               event.stopPropagation()
               handleAddToCart()
             }}
-            disabled={isAdding}
-            aria-label={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
           >
-            <Plus size={16} />
             <span className="sr-only">{isAdding ? 'Đang thêm...' : 'Thêm vào giỏ'}</span>
-          </button>
+          </AddToCartButton>
         </div>
 
         {product.perk ?? product.label ? <p className="product-card__perk">{product.perk ?? product.label}</p> : null}

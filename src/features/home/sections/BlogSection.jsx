@@ -1,4 +1,6 @@
 import { ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '../../../config/routes'
 import { articles } from '../../../data/siteConfig'
 import { buildArticleThumb } from '../../../utils/articleThumb'
 
@@ -6,6 +8,7 @@ const columnConfigs = [
   {
     title: '24H CÔNG NGHỆ',
     category: '24H CÔNG NGHỆ',
+    moreRoute: ROUTES.NEWS,
     tones: [
       ['#c08a43', '#f7d9a0'],
       ['#a7d8d9', '#e8fbfb'],
@@ -16,6 +19,7 @@ const columnConfigs = [
   {
     title: 'KINH NGHIỆM HAY - MẸO VẶT',
     category: 'KINH NGHIỆM HAY - MẸO VẶT',
+    moreRoute: ROUTES.TIPS,
     tones: [
       ['#d8d8d8', '#f4f6f8'],
       ['#1a1a1a', '#5d5d5d'],
@@ -50,7 +54,11 @@ export function BlogSection() {
 
             <div className="article-list">
               {column.rows.map((article) => (
-                <a key={article.id} href="#hero" className="article-row">
+                <Link
+                  key={article.id}
+                  to={ROUTES.BLOG_DETAIL.replace(':articleId', article.id)}
+                  className="article-row"
+                >
                   <div className="article-row__thumb">
                     <img src={article.thumb} alt={article.title} loading="lazy" />
                   </div>
@@ -60,14 +68,14 @@ export function BlogSection() {
                     <time>{article.date}</time>
                     <p>{article.summary}</p>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
 
-            <a href="#hero" className="article-more article-more--block">
+            <Link to={column.moreRoute} className="article-more article-more--block">
               Xem tất cả
               <ChevronRight size={16} />
-            </a>
+            </Link>
           </article>
         ))}
       </div>
