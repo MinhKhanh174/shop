@@ -4,9 +4,10 @@ import { BarChart3, Search, ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
-import { useCartStore } from '../../store/useCartStore'
 import { ROUTES } from '../../config/routes'
 import { AddToCartButton } from '../../shared/ui/AddToCartButton'
+import { AddToCartSuccessModal } from '../../shared/ui/AddToCartSuccessModal'
+import { ProductQuickViewModal } from '../../shared/ui/ProductQuickViewModal'
 import { useCompareStore } from '../../store/useCompareStore'
 
 function buildTimeParts(totalSeconds) {
@@ -45,28 +46,11 @@ function useFlashCountdown() {
 }
 
 function FlashSaleCard({ product }) {
-  const [isAdding, setIsAdding] = useState(false)
-  const addToCart = useCartStore((state) => state.addToCart)
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
+  const [successPayload, setSuccessPayload] = useState(null)
   const addToCompare = useCompareStore((state) => state.addToCompare)
   const navigate = useNavigate()
   const detailPath = ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
-
-  const handleAction = () => {
-    if (product.soldOut) {
-      return
-    }
-
-    setIsAdding(true)
-
-    try {
-      addToCart(product)
-      toast.success(`Đã thêm ${product.name} vào giỏ`)
-    } catch {
-      toast.error('Không thể thêm vào giỏ. Vui lòng thử lại.')
-    } finally {
-      setIsAdding(false)
-    }
-  }
 
   const handleCardClick = () => {
     navigate(detailPath)
@@ -77,94 +61,112 @@ function FlashSaleCard({ product }) {
   }
 
   return (
-    <article
-      className={`flash-sale-card${product.soldOut ? ' is-sold-out' : ''}`}
-      role="link"
-      tabIndex={0}
-      onClick={handleCardClick}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          handleCardClick()
-        }
-      }}
-    >
-      <div className="flash-sale-card__media">
-        <span className="flash-sale-card__period">{product.period}</span>
+    <>
+      <article
+        className={`flash-sale-card${product.soldOut ? ' is-sold-out' : ''}`}
+        role="link"
+        tabIndex={0}
+        onClick={handleCardClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            handleCardClick()
+          }
+        }}
+      >
+        <div className="flash-sale-card__media">
+          <span className="flash-sale-card__period">{product.period}</span>
 
-        <div className="flash-sale-card__discount">
-          <span>{product.discountLabel ?? 'GIẢM ĐẾN'}</span>
-          <strong>50%</strong>
-        </div>
-
-        <div className="flash-sale-card__hover-actions" aria-label={`Tác vụ nhanh cho ${product.name}`}>
-          <Link
-            to={detailPath}
-            onClick={stopCardClick}
-            className="flash-sale-card__hover-action"
-            aria-label={`Xem chi tiết ${product.name}`}
-          >
-            <Search size={16} />
-          </Link>
-          <button
-            type="button"
-            onClick={(event) => {
-              stopCardClick(event)
-              addToCompare(product)
-              toast.success(`Đã thêm ${product.name} vào so sánh`)
-            }}
-            className="flash-sale-card__hover-action"
-            aria-label={`So sánh ${product.name}`}
-          >
-            <BarChart3 size={16} />
-          </button>
-        </div>
-
-        {product.image ? (
-          <img className="flash-sale-card__image" src={product.image} alt={product.name} loading="lazy" />
-        ) : (
-          <div className={`flash-sale-card__art flash-sale-card__art--${product.type}`}>
-            <div className="flash-sale-card__art-core" />
-            <div className="flash-sale-card__art-detail" />
-            <div className="flash-sale-card__art-shadow" />
+          <div className="flash-sale-card__discount">
+            <span>{product.discountLabel ?? 'GIẢM ĐẾN'}</span>
+            <strong>50%</strong>
           </div>
-        )}
 
-        <div className="flash-sale-card__corner-ribbon" aria-hidden="true" />
-      </div>
+          <div className="flash-sale-card__hover-actions" aria-label={`Tác vụ nhanh cho ${product.name}`}>
+            <Link
+              to={detailPath}
+              onClick={stopCardClick}
+              className="flash-sale-card__hover-action"
+              aria-label={`Xem chi tiết ${product.name}`}
+            >
+              <Search size={16} />
+            </Link>
+            <button
+              type="button"
+              onClick={(event) => {
+                stopCardClick(event)
+                addToCompare(product)
+                toast.success(`Đã thêm ${product.name} vào so sánh`)
+              }}
+              className="flash-sale-card__hover-action"
+              aria-label={`So sánh ${product.name}`}
+            >
+              <BarChart3 size={16} />
+            </button>
+          </div>
 
-      <h3 className="flash-sale-card__name">
-        <Link to={detailPath} onClick={stopCardClick}>
-          {product.name}
-        </Link>
-      </h3>
+          {product.image ? (
+            <img className="flash-sale-card__image" src={product.image} alt={product.name} loading="lazy" />
+          ) : (
+            <div className={`flash-sale-card__art flash-sale-card__art--${product.type}`}>
+              <div className="flash-sale-card__art-core" />
+              <div className="flash-sale-card__art-detail" />
+              <div className="flash-sale-card__art-shadow" />
+            </div>
+          )}
 
-      <div className="flash-sale-card__price-row">
-        <span className="flash-sale-card__price">{formatCurrency(product.price)}</span>
+          <div className="flash-sale-card__corner-ribbon" aria-hidden="true" />
+        </div>
 
-        {product.soldOut ? (
-          <button type="button" className="flash-sale-card__sold-out" disabled>
-            Hết hàng
-          </button>
-        ) : (
-          <AddToCartButton
-            className="flash-sale-card__action"
-            icon={ShoppingCart}
-            loading={isAdding}
-            ariaLabel={isAdding ? 'Đang thêm vào giỏ' : 'Thêm vào giỏ'}
-            onClick={(event) => {
-              event.stopPropagation()
-              handleAction()
-            }}
-          />
-        )}
-      </div>
+        <h3 className="flash-sale-card__name">
+          <Link to={detailPath} onClick={stopCardClick}>
+            {product.name}
+          </Link>
+        </h3>
 
-      <div className={`flash-sale-card__status flash-sale-card__status--${product.statusTone ?? 'soft'}`}>
-        <span aria-hidden="true">🔥</span>
-        <span>{product.label}</span>
-      </div>
-    </article>
+        <div className="flash-sale-card__price-row">
+          <span className="flash-sale-card__price">{formatCurrency(product.price)}</span>
+
+          {product.soldOut ? (
+            <button type="button" className="flash-sale-card__sold-out" disabled>
+              Hết hàng
+            </button>
+          ) : (
+            <AddToCartButton
+              className="flash-sale-card__action"
+              icon={ShoppingCart}
+              ariaLabel="Xem nhanh sản phẩm"
+              onClick={(event) => {
+                event.stopPropagation()
+                setIsQuickViewOpen(true)
+              }}
+            />
+          )}
+        </div>
+
+        <div className={`flash-sale-card__status flash-sale-card__status--${product.statusTone ?? 'soft'}`}>
+          <span aria-hidden="true">🔥</span>
+          <span>{product.label}</span>
+        </div>
+      </article>
+
+      <ProductQuickViewModal
+        open={isQuickViewOpen}
+        product={product}
+        onClose={() => setIsQuickViewOpen(false)}
+        onAddedToCart={(payload) => {
+          setSuccessPayload(payload)
+        }}
+      />
+
+      <AddToCartSuccessModal
+        open={Boolean(successPayload)}
+        item={successPayload}
+        cartTotalText={successPayload?.cartTotalText ?? ''}
+        cartCountText={successPayload?.cartCountText ?? ''}
+        onClose={() => setSuccessPayload(null)}
+      />
+    </>
   )
 }
 

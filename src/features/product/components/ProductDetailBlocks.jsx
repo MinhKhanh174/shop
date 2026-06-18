@@ -22,7 +22,8 @@ export function ProductSummaryStrip({
   onIncrease,
   onAddToCart,
 }) {
-  const colorLabels = ['Xanh dương', 'Đen', 'Bạc', 'Trắng']
+  const canDecrease = quantity > 1
+  const canIncrease = maxQuantity === null || quantity < maxQuantity
 
   return (
     <section className="pd-summary-strip">
@@ -41,45 +42,46 @@ export function ProductSummaryStrip({
       </div>
 
       <div className="pd-summary-strip__controls">
-        <label className="pd-summary-strip__field">
-          <select
-            value={String(selectedColorIndex)}
-            onChange={(event) => onColorChange(Number(event.target.value))}
-            aria-label="Màu sắc"
-          >
-            {colorOptions.map((_, index) => {
-              const label = colorLabels[index] ?? `Màu ${index + 1}`
-              return (
-                <option key={label} value={index}>
-                  {label}
+        {colorOptions.length > 0 ? (
+          <label className="pd-summary-strip__field">
+            <select
+              value={String(selectedColorIndex)}
+              onChange={(event) => onColorChange(Number(event.target.value))}
+              aria-label="Màu sắc"
+            >
+              {colorOptions.map((color, index) => (
+                <option key={color.key ?? color.label ?? index} value={index}>
+                  {color.label ?? `Màu ${index + 1}`}
                 </option>
-              )
-            })}
-          </select>
-        </label>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
-        <label className="pd-summary-strip__field">
-          <select
-            value={String(selectedStorageIndex)}
-            onChange={(event) => onStorageChange(Number(event.target.value))}
-            aria-label="Dung lượng"
-          >
-            {storageOptions.map((storage) => (
-              <option key={storage} value={storageOptions.indexOf(storage)}>
-                {storage}
-              </option>
-            ))}
-          </select>
-        </label>
+        {storageOptions.length > 0 ? (
+          <label className="pd-summary-strip__field">
+            <select
+              value={String(selectedStorageIndex)}
+              onChange={(event) => onStorageChange(Number(event.target.value))}
+              aria-label="Dung lượng"
+            >
+              {storageOptions.map((storage, index) => (
+                <option key={storage} value={index}>
+                  {storage}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <div className="pd-summary-strip__qty">
           <span>Số lượng:</span>
           <div className="pd-qty pd-qty--compact" aria-label="Số lượng sản phẩm">
-            <button type="button" onClick={onDecrease}>
+            <button type="button" onClick={onDecrease} disabled={!canDecrease}>
               <Minus size={14} />
             </button>
             <span>{quantity}</span>
-            <button type="button" onClick={onIncrease} disabled={maxQuantity !== null && quantity >= maxQuantity}>
+            <button type="button" onClick={onIncrease} disabled={!canIncrease}>
               <Plus size={14} />
             </button>
           </div>

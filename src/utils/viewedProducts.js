@@ -1,7 +1,7 @@
 import { getItem, setItem } from '../storage/localStorage'
 
 export const VIEWED_PRODUCTS_KEY = 'techstore:viewed-products'
-export const VIEWED_PRODUCTS_LIMIT = 8
+export const VIEWED_PRODUCTS_LIMIT = 5
 
 export function getViewedProductIds() {
   const ids = getItem(VIEWED_PRODUCTS_KEY, [])

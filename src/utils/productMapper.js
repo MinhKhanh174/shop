@@ -16,6 +16,20 @@ const typeByCategory = {
   laptops: 'laptop',
 }
 
+const familyByCategory = {
+  smartphones: 'phone',
+  tablets: 'tablet',
+  laptops: 'laptop',
+  headphones: 'audio',
+  speakers: 'audio',
+  'mobile-accessories': 'accessories',
+  'computer-accessories': 'accessories',
+  'mens-watches': 'watch',
+  'womens-watches': 'watch',
+}
+
+const colorPalette = ['white', 'black', 'gray', 'blue', 'red']
+
 const selectedBrands = ['Apple', 'Samsung', 'Oppo', 'Xiaomi']
 const techCategories = new Set([
   'smartphones',
@@ -38,6 +52,17 @@ function pickAccent(seed) {
   const sum = normalized.split('').reduce((accumulator, char) => accumulator + char.charCodeAt(0), 0)
 
   return accentPalette[sum % accentPalette.length]
+}
+
+function pickColorKey(seed) {
+  if (!seed) {
+    return colorPalette[0]
+  }
+
+  const normalized = String(seed).toLowerCase()
+  const sum = normalized.split('').reduce((accumulator, char) => accumulator + char.charCodeAt(0), 0)
+
+  return colorPalette[sum % colorPalette.length]
 }
 
 function formatMoney(value) {
@@ -77,6 +102,8 @@ export function mapApiProductToCard(product, overrides = {}) {
         : ''),
     accent,
     type: overrides.type ?? typeByCategory[product.category] ?? 'phone',
+    family: overrides.family ?? familyByCategory[product.category] ?? 'other',
+    colorKey: overrides.colorKey ?? pickColorKey(`${product.brand ?? ''}-${product.category ?? ''}-${product.title ?? ''}`),
     image: overrides.image ?? product.thumbnail ?? product.images?.[0] ?? null,
     secondaryImage: overrides.secondaryImage ?? product.images?.[1] ?? null,
     category: product.category,

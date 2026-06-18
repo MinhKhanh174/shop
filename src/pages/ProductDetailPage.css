@@ -234,7 +234,12 @@
   color: #111827;
 }
 
-.pd-info__accent-blue {
+.pd-info__value {
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.pd-info__value--accent-blue {
   color: #2563eb;
 }
 
@@ -246,6 +251,10 @@
   gap: 5px;
   width: fit-content;
   margin-top: 8px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .pd-price-box {
@@ -299,18 +308,25 @@
   width: fit-content;
 }
 
-.pd-info__promo {
+.pd-info__promo-wrap {
   width: 459.66px;
   max-width: 100%;
-  min-height: 151.8px;
-  border-radius: 0;
-  background: #f3f4f6;
-  overflow: hidden;
   margin: 0 0 10px;
   padding: 10px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.pd-info__promo {
+  min-height: 151.8px;
+  border-radius: 0;
+  background: transparent;
+  overflow: hidden;
+  padding: 0;
   display: grid;
   justify-items: start;
-  gap: 10px;
+  gap: 8px;
 }
 
 .pd-info__promo-title {
@@ -319,16 +335,20 @@
   gap: 8px;
   background: #ef1f1f;
   color: #fff;
-  padding: 0 10px;
-  font-size: 14px;
+  padding: 0 14px;
+  font-size: 16px;
   font-weight: 700;
-  width: 194.84px;
-  height: 26.8px;
-  border-radius: 0;
+  width: fit-content;
+  height: 34px;
+  border-radius: 3px;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .pd-info__promo-title svg {
   flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .pd-info__promo-title span {
@@ -345,7 +365,7 @@
   font-size: 14px;
   line-height: 1.55;
   background: #fff;
-  border-radius: 0;
+  border-radius: 3px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
   margin: 0;
   box-sizing: border-box;
@@ -422,17 +442,25 @@
   padding: 2px;
   background: #fff;
   overflow: hidden;
+  display: inline-grid;
+  place-items: center;
 }
 
 .pd-color.is-active {
   box-shadow: inset 0 0 0 1px #ef1f1f;
 }
 
-.pd-color img {
+.pd-color img,
+.pd-color__swatch {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   border-radius: 999px;
+}
+
+.pd-color__swatch {
+  display: block;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
 .pd-storage {
@@ -623,6 +651,10 @@
   color: #fff;
 }
 
+.pd-btn--installment:hover small {
+  color: #fff;
+}
+
 .pd-info__cta-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -640,6 +672,18 @@
 
 .pd-info__cta-row .pd-btn--installment {
   color: #fb2a0b;
+}
+
+.pd-info__cta-row .pd-btn--installment:hover {
+  background: #ef1f1f;
+  color: #fff;
+  border-color: #ef1f1f;
+}
+
+.pd-info__cta-row .pd-btn--installment:hover span,
+.pd-info__cta-row .pd-btn--installment:hover small,
+.pd-info__cta-row .pd-btn--installment:hover svg {
+  color: #fff;
 }
 
 .pd-info__hotline {
@@ -691,7 +735,7 @@
 .pd-coupon__description {
   margin: 0;
   color: #64748b;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1134,36 +1178,30 @@
   width: fit-content;
 }
 
-.pd-related__grid,
-.pd-product-grid {
+.pd-related__grid {
   margin-top: 12px;
-  display: grid;
+}
+
+.category-product-grid--detail {
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
 }
 
-.pd-product-grid .product-card--compact {
-  border-radius: 0;
-  box-shadow: none;
+@media (max-width: 1200px) {
+  .category-product-grid--detail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
-.pd-product-grid .product-card--compact:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: #e7eaf0;
+@media (max-width: 900px) {
+  .category-product-grid--detail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.pd-product-grid .product-card--compact .product-card__media,
-.pd-product-grid .product-card--compact .product-card__body {
-  background: #fff;
-}
-
-.pd-product-grid .product-card--compact:hover .product-card__device {
-  transform: none;
-}
-
-.pd-product-grid .product-card--compact:hover .product-card__image-wrap {
-  transform: translateY(-10px);
+@media (max-width: 640px) {
+  .category-product-grid--detail {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pd-empty {
@@ -1308,11 +1346,6 @@
     max-width: 100%;
   }
 
-  .pd-related__grid,
-  .pd-product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .pd-summary-strip {
     grid-template-columns: 64px minmax(0, 1fr);
   }
@@ -1329,8 +1362,6 @@
   }
 
   .pd-info__cta-row,
-  .pd-related__grid,
-  .pd-product-grid,
   .pd-skeleton__buttons {
     grid-template-columns: 1fr;
   }

@@ -16,15 +16,17 @@ import {
 import toast from 'react-hot-toast'
 import { useHomeData } from '../hooks/useHomeData'
 import { useCart } from '../hooks/useCart'
+import { useAddToCartSuccessFlow } from '../hooks/useAddToCartSuccessFlow'
 import { ROUTES } from '../config/routes'
 import { formatCurrency } from '../utils/formatCurrency'
 import { mapProductsToCards } from '../utils/productMapper'
 import { getViewedProducts, saveViewedProductId } from '../utils/viewedProducts'
 import { getCategoryCollectionPath } from '../utils/categoryRoutes'
 import { buildBlogArticlePath, getRelatedBlogArticleForProduct } from '../utils/blogArticles'
-import { ProductCard } from '../shared/ui/ProductCard'
+import { ProductRail } from '../shared/ui/ProductRail'
 import { CopyCodeButton } from '../shared/ui/CopyCodeButton'
 import { useProductDetail } from '../features/product/hooks/useProductDetail'
+import { useCompareStore } from '../store/useCompareStore'
 import { coupons } from '../data/siteConfig'
 import {
   buildCategoryLabel,
@@ -45,12 +47,13 @@ function ProductDetailContent({ productId }) {
   const { product, loading } = useProductDetail(productId)
   const { products: remoteProducts = [], categoryItems = [] } = useHomeData()
   const { addToCart } = useCart()
+  const addToCompare = useCompareStore((state) => state.addToCompare)
+  const { handleAddToCart: submitAddToCart, successModal } = useAddToCartSuccessFlow()
   const [quantity, setQuantity] = useState(1)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [selectedColorIndex, setSelectedColorIndex] = useState(0)
   const [selectedStorageIndex, setSelectedStorageIndex] = useState(0)
   const [isSpecsOpen, setIsSpecsOpen] = useState(false)
-  const [isAddingToCart, setIsAddingToCart] = useState(false)
   const maxQuantity = Number.isFinite(Number(product?.source?.stock)) ? Math.max(1, Number(product.source.stock)) : null
 
   useEffect(() => {
@@ -147,23 +150,32 @@ function ProductDetailContent({ productId }) {
   const isDellProductCode = String(productCode).toUpperCase() === 'DELL.NEW.DELL.XPS.13.9300.LAPTOP'
   const colorOptions = galleryImages.slice(0, 2).length > 0 ? galleryImages.slice(0, 2) : [product.image, product.image].filter(Boolean)
   const storageOptions = ['128GB', '256GB', '512GB']
+  const hasColorData = Boolean(
+    Array.isArray(product?.source?.colors) ||
+      Array.isArray(product?.source?.colorOptions) ||
+      Array.isArray(product?.source?.variants),
+  )
+  const hasStorageData = Boolean(
+    product?.source?.storage ||
+      product?.source?.storages ||
+      product?.source?.capacity ||
+      product?.source?.capacities ||
+      product?.source?.variant ||
+      product?.source?.variants,
+  )
 
   const handleBuyNow = () => {
-    addToCart(product)
+    addToCart(product, quantity)
     navigate(ROUTES.CART)
   }
 
   const handleAddToCart = () => {
-    setIsAddingToCart(true)
+    submitAddToCart(product, { quantity })
+  }
 
-    try {
-      addToCart(product)
-      toast.success(`Đã thêm ${product.name} vào giỏ`)
-    } catch {
-      toast.error('Không thể thêm vào giỏ. Vui lòng thử lại.')
-    } finally {
-      setIsAddingToCart(false)
-    }
+  const handleAddToCompare = () => {
+    addToCompare(product)
+    toast.success(`Đã thêm ${product.name} vào so sánh`)
   }
 
   const promoLines = [
@@ -258,17 +270,17 @@ function ProductDetailContent({ productId }) {
                 <div className="pd-info__meta">
                   <span>
                     <span className="pd-info__label">Thương hiệu:</span>{' '}
-                    <span className={isDellBrand ? 'pd-info__accent-blue' : ''}>{product.brand || 'Techstore'}</span>
+                    <span className={`pd-info__value${isDellBrand ? ' pd-info__value--accent-blue' : ''}`}>{product.brand || 'Techstore'}</span>
                   </span>
                   <span>
                     <span className="pd-info__label">Mã sản phẩm:</span>{' '}
-                    <span className={isDellProductCode ? 'pd-info__accent-blue' : ''}>{productCode}</span>
+                    <span className={`pd-info__value${isDellProductCode ? ' pd-info__value--accent-blue' : ''}`}>{productCode}</span>
                   </span>
                 </div>
-                <Link to={`${ROUTES.COMPARE}?ids=${product.id}`} className="pd-info__compare">
+                <button type="button" className="pd-info__compare" onClick={handleAddToCompare}>
                   <BarChart3 size={15} />
                   <span>So sánh</span>
-                </Link>
+                </button>
               </div>
 
               <div className="pd-price-box">
@@ -284,66 +296,72 @@ function ProductDetailContent({ productId }) {
                 <span>Tặng gói bảo hành Gold trị giá 300K</span>
               </div>
 
-              <div className="pd-info__promo">
-                <div className="pd-info__promo-title">
-                  <Gift size={16} />
-                  <span>KHUYẾN MÃI - ƯU ĐÃI</span>
-                </div>
-                <ul className="pd-info__promo-list">
-                  {promoLines.map((line) => (
-                    <li key={typeof line === 'string' ? line : line.text}>
-                      {typeof line === 'string' ? (
-                        line
-                      ) : (
-                        <>
-                          <span>{line.text}</span>
-                          <CopyCodeButton value={line.copyValue} className="pd-promo-copy">
-                            {line.copyLabel}
-                          </CopyCodeButton>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pd-info__section">
-                <p className="pd-info__section-label">Màu sắc:</p>
-                <div className="pd-colors">
-                  {colorOptions.map((image, index) => (
-                    <button
-                      key={`${image}-${index}`}
-                      type="button"
-                      className={`pd-color${selectedColorIndex === index ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setSelectedColorIndex(index)
-                        setActiveImageIndex(index)
-                      }}
-                    >
-                      <img src={image} alt="" />
-                    </button>
-                  ))}
+              <div className="pd-info__promo-wrap">
+                <div className="pd-info__promo">
+                  <div className="pd-info__promo-title">
+                    <Gift size={16} />
+                    <span>KHUYẾN MÃI - ƯU ĐÃI</span>
+                  </div>
+                  <ul className="pd-info__promo-list">
+                    {promoLines.map((line) => (
+                      <li key={typeof line === 'string' ? line : line.text}>
+                        {typeof line === 'string' ? (
+                          line
+                        ) : (
+                          <>
+                            <span>{line.text}</span>
+                            <CopyCodeButton value={line.copyValue} className="pd-promo-copy">
+                              {line.copyLabel}
+                            </CopyCodeButton>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
-              <div className="pd-info__section">
-                <p className="pd-info__section-label">Dung lượng:</p>
-                <div className="pd-storage">
-                  {storageOptions.map((storage, index) => (
-                    <label key={storage} className={`pd-storage__option${selectedStorageIndex === index ? ' is-active' : ''}`}>
-                      <input
-                        id={`swatch-${index + 1}-${storage.toLowerCase()}`}
-                        type="radio"
-                        name="storage"
-                        value={storage}
-                        checked={selectedStorageIndex === index}
-                        onChange={() => setSelectedStorageIndex(index)}
-                      />
-                      <span>{storage}</span>
-                    </label>
-                  ))}
+              {hasColorData ? (
+                <div className="pd-info__section">
+                  <p className="pd-info__section-label">Màu sắc:</p>
+                  <div className="pd-colors">
+                    {colorOptions.map((image, index) => (
+                      <button
+                        key={`${image}-${index}`}
+                        type="button"
+                        className={`pd-color${selectedColorIndex === index ? ' is-active' : ''}`}
+                        onClick={() => {
+                          setSelectedColorIndex(index)
+                          setActiveImageIndex(index)
+                        }}
+                      >
+                        <img src={image} alt="" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
+
+              {hasStorageData ? (
+                <div className="pd-info__section">
+                  <p className="pd-info__section-label">Dung lượng:</p>
+                  <div className="pd-storage">
+                    {storageOptions.map((storage, index) => (
+                      <label key={storage} className={`pd-storage__option${selectedStorageIndex === index ? ' is-active' : ''}`}>
+                        <input
+                          id={`swatch-${index + 1}-${storage.toLowerCase()}`}
+                          type="radio"
+                          name="storage"
+                          value={storage}
+                          checked={selectedStorageIndex === index}
+                          onChange={() => setSelectedStorageIndex(index)}
+                        />
+                        <span>{storage}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="pd-info__section pd-info__section--qty">
                 <p className="pd-info__section-label">Số lượng:</p>
@@ -461,8 +479,8 @@ function ProductDetailContent({ productId }) {
         <ProductSummaryStrip
           product={product}
           image={activeImage}
-          colorOptions={colorOptions}
-          storageOptions={storageOptions}
+          colorOptions={hasColorData ? colorOptions : []}
+          storageOptions={hasStorageData ? storageOptions : []}
           selectedColorIndex={selectedColorIndex}
           selectedStorageIndex={selectedStorageIndex}
           quantity={quantity}
@@ -491,36 +509,30 @@ function ProductDetailContent({ productId }) {
         />
 
         {relatedProducts.length > 0 ? (
-          <section className="pd-related">
-            <h2 className="pd-related__title">SẢN PHẨM THƯỜNG MUA CÙNG</h2>
-            <div className="pd-product-grid pd-product-grid--related">
-              {relatedProducts.map((item) => (
-                <ProductCard key={item.id} product={item} compact />
-              ))}
-            </div>
-          </section>
+          <ProductRail
+            title="SẢN PHẨM THƯỜNG MUA CÙNG"
+            products={relatedProducts}
+            itemsPerPage={5}
+            className="pd-related product-rail--detail"
+          />
         ) : null}
 
         {samePriceProducts.length > 0 ? (
-          <section className="pd-related">
-            <h2 className="pd-related__title">SẢN PHẨM CÙNG PHÂN KHÚC GIÁ</h2>
-            <div className="pd-product-grid pd-product-grid--same-price">
-              {samePriceProducts.map((item) => (
-                <ProductCard key={item.id} product={item} compact />
-              ))}
-            </div>
-          </section>
+          <ProductRail
+            title="SẢN PHẨM CÙNG PHÂN KHÚC GIÁ"
+            products={samePriceProducts}
+            itemsPerPage={5}
+            className="pd-related product-rail--detail"
+          />
         ) : null}
 
         {viewedProducts.length > 0 ? (
-          <section className="pd-related">
-            <h2 className="pd-related__title">SẢN PHẨM ĐÃ XEM</h2>
-            <div className="pd-product-grid pd-product-grid--viewed">
-              {viewedProducts.map((item) => (
-                <ProductCard key={item.id} product={item} compact />
-              ))}
-            </div>
-          </section>
+          <ProductRail
+            title="SẢN PHẨM ĐÃ XEM"
+            products={viewedProducts}
+            itemsPerPage={5}
+            className="pd-related product-rail--detail"
+          />
         ) : null}
       </div>
 
@@ -553,6 +565,8 @@ function ProductDetailContent({ productId }) {
           </div>
         </div>
       ) : null}
+
+      {successModal}
     </div>
   )
 }

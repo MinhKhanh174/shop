@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchProducts, fetchProductCategories } from '../services/homeApi'
-import { filterTechProducts, getRemoteBrands } from '../utils/productMapper'
+import { getRemoteBrands } from '../utils/productMapper'
 
 const DEFAULT_QUERY = {
   limit: 100,
@@ -64,11 +64,10 @@ export function useHomeContent(refreshToken = 0) {
           : []
         const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []
         const mergedProducts = mergeProducts(firstPageProducts, secondPageProducts)
-        const techProducts = filterTechProducts(mergedProducts)
 
         setRemote({
-          products: techProducts,
-          brands: getRemoteBrands(techProducts),
+          products: mergedProducts,
+          brands: getRemoteBrands(mergedProducts),
           categories,
           loading: false,
           error: null,

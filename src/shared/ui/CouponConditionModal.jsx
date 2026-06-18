@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { CopyCodeButton } from './CopyCodeButton'
@@ -33,7 +34,11 @@ export function CouponConditionModal({ coupon, open, onClose }) {
     return null
   }
 
-  return (
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(
     <div className="coupon-modal" role="presentation" onClick={onClose}>
       <div
         className="coupon-modal__dialog"
@@ -78,6 +83,7 @@ export function CouponConditionModal({ coupon, open, onClose }) {
           </CopyCodeButton>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

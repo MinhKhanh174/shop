@@ -1,6 +1,5 @@
 import { fetchProductById, fetchProducts, searchProducts } from './homeApi.js'
 import { formatCurrency } from '../utils/currency.js'
-import { filterTechProducts } from '../utils/productMapper.js'
 
 const PRODUCT_SELECT =
   'id,title,sku,price,discountPercentage,brand,category,thumbnail,images,stock,rating,description'
@@ -39,7 +38,7 @@ function mapApiProduct(product) {
   }
 }
 
-async function fetchAllTechProducts() {
+async function fetchAllProducts() {
   const [firstPage, secondPage] = await Promise.all([
     fetchProducts({ limit: 100, select: PRODUCT_SELECT }),
     fetchProducts({ skip: 100, limit: 100, select: PRODUCT_SELECT }),
@@ -50,18 +49,18 @@ async function fetchAllTechProducts() {
   const merged = [...firstPageProducts, ...secondPageProducts]
   const unique = Array.from(new Map(merged.map((item) => [item.id, item])).values())
 
-  return filterTechProducts(unique).map(mapApiProduct)
+  return unique.map(mapApiProduct)
 }
 
 export async function getProducts() {
-  return fetchAllTechProducts()
+  return fetchAllProducts()
 }
 
 export async function searchCatalogProducts(query) {
   const response = await searchProducts(query)
   const results = Array.isArray(response.data?.products) ? response.data.products : []
 
-  return filterTechProducts(results).map(mapApiProduct)
+  return results.map(mapApiProduct)
 }
 
 export async function getProductById(id) {

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useHomeData } from '../../hooks/useHomeData'
-import { getViewedProducts } from '../../utils/viewedProducts'
 import { SectionHeading } from '../../shared/ui/SectionHeading'
 import { CategoryBreadcrumb } from '../category/components/CategoryBreadcrumb'
 import { CategoryEmptyState } from '../category/components/CategoryEmptyState'
@@ -12,13 +11,18 @@ import { CategorySortBar } from '../category/components/CategorySortBar'
 import { ViewedProductsSection } from '../category/components/ViewedProductsSection'
 import { VoucherSection } from '../home/sections/VoucherSection'
 import { useProductSearchResults } from './hooks/useProductSearchResults.js'
+import { useViewedProducts } from './hooks/useViewedProducts'
 import {
   buildBrandOptions,
+  buildColorOptions,
   buildPaginationPages,
+  buildProductTypeOptions,
   dedupeProducts,
   getCollectionMeta,
   getVisibleProducts,
   mapRemoteProduct,
+  matchesColorSelection,
+  matchesProductTypeSelection,
   matchesPriceRange,
   sortProducts,
 } from './productList.utils'
@@ -32,6 +36,8 @@ export default function ProductListPage() {
   const { searchResults, loading: searchLoading, error: searchError } = useProductSearchResults(query)
 
   const [selectedBrands, setSelectedBrands] = useState([])
+  const [selectedColors, setSelectedColors] = useState([])
+  const [selectedProductTypes, setSelectedProductTypes] = useState([])
   const [selectedPriceRange, setSelectedPriceRange] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
   const [currentPage, setCurrentPage] = useState(1)
@@ -54,6 +60,8 @@ export default function ProductListPage() {
   }, [query, remoteProducts, searchResults])
 
   const brandOptions = useMemo(() => buildBrandOptions(baseProducts), [baseProducts])
+  const colorOptions = useMemo(() => buildColorOptions(baseProducts), [baseProducts])
+  const productTypeOptions = useMemo(() => buildProductTypeOptions(baseProducts), [baseProducts])
   const collectionMeta = useMemo(() => getCollectionMeta(query), [query])
 
   const filteredProducts = useMemo(() => {
@@ -62,22 +70,36 @@ export default function ProductListPage() {
         ? baseProducts.filter((product) => selectedBrands.includes(product.brand))
         : baseProducts
 
-    const byPrice = byBrand.filter((product) => matchesPriceRange(product, selectedPriceRange))
+    const byColor = byBrand.filter((product) => matchesColorSelection(product, selectedColors))
+    const byType = byColor.filter((product) => matchesProductTypeSelection(product, selectedProductTypes))
+    const byPrice = byType.filter((product) => matchesPriceRange(product, selectedPriceRange))
 
     return sortProducts(byPrice, sortBy)
-  }, [baseProducts, selectedBrands, selectedPriceRange, sortBy])
+  }, [baseProducts, selectedBrands, selectedColors, selectedProductTypes, selectedPriceRange, sortBy])
 
   const { totalPages, safeCurrentPage, visibleProducts } = useMemo(
     () => getVisibleProducts(filteredProducts, currentPage, PAGE_SIZE),
     [currentPage, filteredProducts],
   )
   const isFilteredEmpty = baseProducts.length > 0 && filteredProducts.length === 0
-  const viewedProducts = useMemo(() => getViewedProducts(baseProducts, 4), [baseProducts])
+  const viewedProducts = useViewedProducts(4)
   const paginationPages = useMemo(() => buildPaginationPages(totalPages, safeCurrentPage), [safeCurrentPage, totalPages])
 
   const handleToggleBrand = (brand) => {
     setSelectedBrands((current) =>
       current.includes(brand) ? current.filter((item) => item !== brand) : [...current, brand],
+    )
+    setCurrentPage(1)
+  }
+
+  const handleToggleColor = (color) => {
+    setSelectedColors((current) => (current.includes(color) ? current.filter((item) => item !== color) : [...current, color]))
+    setCurrentPage(1)
+  }
+
+  const handleToggleProductType = (type) => {
+    setSelectedProductTypes((current) =>
+      current.includes(type) ? current.filter((item) => item !== type) : [...current, type],
     )
     setCurrentPage(1)
   }
@@ -94,6 +116,8 @@ export default function ProductListPage() {
 
   const handleResetFilters = () => {
     setSelectedBrands([])
+    setSelectedColors([])
+    setSelectedProductTypes([])
     setSelectedPriceRange('all')
     setSortBy('newest')
     setCurrentPage(1)
@@ -116,8 +140,14 @@ export default function ProductListPage() {
         <CategorySidebar
           brands={brandOptions}
           selectedBrands={selectedBrands}
+          colors={colorOptions}
+          selectedColors={selectedColors}
           selectedPriceRange={selectedPriceRange}
+          productTypes={productTypeOptions}
+          selectedProductTypes={selectedProductTypes}
           onToggleBrand={handleToggleBrand}
+          onToggleColor={handleToggleColor}
+          onToggleProductType={handleToggleProductType}
           onPriceRangeChange={handlePriceRangeChange}
           onReset={handleResetFilters}
           totalCount={baseProducts.length}
@@ -198,7 +228,8 @@ export default function ProductListPage() {
         </p>
       </section>
 
-      <ViewedProductsSection products={viewedProducts} />
+      <ViewedProductsSection products={viewedProducts} variant="grid" />
     </div>
   )
 }
+

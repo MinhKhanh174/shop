@@ -19,7 +19,7 @@ export function buildArticleThumb(seed, tones) {
       <circle cx="120" cy="32" r="24" fill="rgba(255,255,255,0.22)" />
       <rect x="18" y="70" width="64" height="14" rx="7" fill="rgba(255,255,255,0.35)" />
       <rect x="18" y="90" width="108" height="10" rx="5" fill="rgba(255,255,255,0.25)" />
-      <text x="16" y="31" font-size="18" font-family="Lato, sans-serif" font-weight="700" fill="#fff">${label}</text>
+      <text x="16" y="31" font-size="18" font-family="Be Vietnam Pro, sans-serif" font-weight="700" fill="#fff">${label}</text>
     </svg>
   `
 

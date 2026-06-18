@@ -20,7 +20,7 @@ import { CategorySkeleton } from './components/CategorySkeleton'
 import { CategorySortBar } from './components/CategorySortBar'
 import { ViewedProductsSection } from './components/ViewedProductsSection'
 import { VoucherSection } from '../home/sections/VoucherSection'
-import { getViewedProducts } from '../../utils/viewedProducts'
+import { useViewedProducts } from '../product/hooks/useViewedProducts'
 
 const PAGE_SIZE = 12
 
@@ -250,10 +250,7 @@ function CategoryCollectionView({ collectionMeta, collectionProducts, remoteProd
     return [...pages].sort((left, right) => left - right)
   }, [safeCurrentPage, totalPages])
 
-  const viewedProducts = useMemo(
-    () => getViewedProducts(mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' }), 4),
-    [remoteProducts],
-  )
+  const viewedProducts = useViewedProducts(4)
 
   const handleToggleBrand = (brand) => {
     setSelectedBrands((current) =>
@@ -374,7 +371,7 @@ function CategoryCollectionView({ collectionMeta, collectionProducts, remoteProd
         </p>
       </section>
 
-      <ViewedProductsSection products={viewedProducts} />
+      <ViewedProductsSection products={viewedProducts} variant="grid" />
     </div>
   )
 }

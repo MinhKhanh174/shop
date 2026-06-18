@@ -39,7 +39,7 @@ export const useCompareStore = create((set, get) => ({
       const nextItems = [...withoutCurrent, normalized].slice(-MAX_COMPARE_ITEMS)
 
       saveCompareItems(nextItems)
-      return { compareItems: nextItems }
+      return { compareItems: nextItems, isTrayCollapsed: false }
     })
   },
 

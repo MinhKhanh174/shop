@@ -69,6 +69,51 @@ export function buildBrandOptions(products) {
   return brands.sort((left, right) => left.localeCompare(right))
 }
 
+const COLOR_OPTIONS = [
+  { value: 'white', label: 'Trắng', swatch: '#ffffff', border: '#cbd5e1' },
+  { value: 'black', label: 'Đen', swatch: '#111111', border: '#111111' },
+  { value: 'gray', label: 'Xám', swatch: '#9ca3af', border: '#9ca3af' },
+  { value: 'blue', label: 'Xanh dương', swatch: '#0ea5e9', border: '#0ea5e9' },
+  { value: 'red', label: 'Đỏ', swatch: '#ef1f1f', border: '#ef1f1f' },
+]
+
+const PRODUCT_TYPE_OPTIONS = [
+  { value: 'audio', label: 'Tai nghe' },
+  { value: 'tablet', label: 'Máy tính bảng' },
+  { value: 'watch', label: 'Đồng hồ' },
+  { value: 'phone', label: 'Điện thoại' },
+]
+
+export function buildColorOptions(products) {
+  return COLOR_OPTIONS.map((option) => ({
+    ...option,
+    count: products.filter((product) => product.colorKey === option.value).length,
+  })).filter((option) => option.count > 0)
+}
+
+export function buildProductTypeOptions(products) {
+  return PRODUCT_TYPE_OPTIONS.map((option) => ({
+    ...option,
+    count: products.filter((product) => product.family === option.value).length,
+  })).filter((option) => option.count > 0)
+}
+
+export function matchesColorSelection(product, selectedColors) {
+  if (!selectedColors.length) {
+    return true
+  }
+
+  return selectedColors.includes(product.colorKey)
+}
+
+export function matchesProductTypeSelection(product, selectedProductTypes) {
+  if (!selectedProductTypes.length) {
+    return true
+  }
+
+  return selectedProductTypes.includes(product.family)
+}
+
 export function getVisibleProducts(products, currentPage, pageSize) {
   const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
