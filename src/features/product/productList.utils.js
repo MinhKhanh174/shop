@@ -3,6 +3,11 @@ import { mapApiProductToCard } from '../../utils/productMapper'
 export const PRICE_RANGES = {
   all: { min: null, max: null },
   'under-2000000': { min: null, max: 2000000 },
+  '1000000-2000000': { min: 1000000, max: 2000000 },
+  '2000000-3000000': { min: 2000000, max: 3000000 },
+  '3000000-5000000': { min: 3000000, max: 5000000 },
+  '5000000-7000000': { min: 5000000, max: 7000000 },
+  '7000000-10000000': { min: 7000000, max: 10000000 },
   '2000000-5000000': { min: 2000000, max: 5000000 },
   '5000000-10000000': { min: 5000000, max: 10000000 },
   'over-10000000': { min: 10000000, max: null },
@@ -46,6 +51,28 @@ export function matchesPriceRange(product, rangeKey) {
   if (range.max !== null && product.price > range.max) return false
 
   return true
+}
+
+export function getVisibleProducts(products, currentPage, pageSize) {
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (safeCurrentPage - 1) * pageSize
+  const visibleProducts = products.slice(startIndex, startIndex + pageSize)
+
+  return { totalPages, safeCurrentPage, visibleProducts }
+}
+
+export function buildPaginationPages(totalPages, safeCurrentPage) {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+
+  const pages = new Set([1, totalPages, safeCurrentPage])
+
+  if (safeCurrentPage > 2) pages.add(safeCurrentPage - 1)
+  if (safeCurrentPage < totalPages - 1) pages.add(safeCurrentPage + 1)
+
+  return [...pages].sort((left, right) => left - right)
 }
 
 export function mapRemoteProduct(product) {
@@ -112,26 +139,4 @@ export function matchesProductTypeSelection(product, selectedProductTypes) {
   }
 
   return selectedProductTypes.includes(product.family)
-}
-
-export function getVisibleProducts(products, currentPage, pageSize) {
-  const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const startIndex = (safeCurrentPage - 1) * pageSize
-  const visibleProducts = products.slice(startIndex, startIndex + pageSize)
-
-  return { totalPages, safeCurrentPage, visibleProducts }
-}
-
-export function buildPaginationPages(totalPages, safeCurrentPage) {
-  if (totalPages <= 5) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1)
-  }
-
-  const pages = new Set([1, totalPages, safeCurrentPage])
-
-  if (safeCurrentPage > 2) pages.add(safeCurrentPage - 1)
-  if (safeCurrentPage < totalPages - 1) pages.add(safeCurrentPage + 1)
-
-  return [...pages].sort((left, right) => left - right)
 }

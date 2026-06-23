@@ -21,16 +21,16 @@ import { CategorySortBar } from './components/CategorySortBar'
 import { ViewedProductsSection } from './components/ViewedProductsSection'
 import { VoucherSection } from '../home/sections/VoucherSection'
 import { useViewedProducts } from '../product/hooks/useViewedProducts'
+import {
+  buildBrandOptions,
+  buildPaginationPages,
+  dedupeProducts,
+  getVisibleProducts,
+  matchesPriceRange,
+  sortProducts,
+} from '../product/productList.utils'
 
 const PAGE_SIZE = 12
-
-const PRICE_RANGES = {
-  all: { min: null, max: null },
-  'under-2000000': { min: null, max: 2000000 },
-  '2000000-5000000': { min: 2000000, max: 5000000 },
-  '5000000-10000000': { min: 5000000, max: 10000000 },
-  'over-10000000': { min: 10000000, max: null },
-}
 
 const COLLECTION_META = {
   [COLLECTION_FEATURED_SLUG]: {
@@ -71,19 +71,6 @@ const COLLECTION_META = {
   },
 }
 
-function dedupeProducts(products) {
-  const seen = new Set()
-
-  return products.filter((product) => {
-    const key = String(product.id)
-    if (seen.has(key)) {
-      return false
-    }
-    seen.add(key)
-    return true
-  })
-}
-
 function getDiscountValue(product) {
   const sourceDiscount = Number(product?.source?.discountPercentage)
   if (!Number.isNaN(sourceDiscount) && sourceDiscount > 0) {
@@ -96,40 +83,6 @@ function getDiscountValue(product) {
 
   const parsedBadge = Number(badgeValue)
   return Number.isNaN(parsedBadge) ? 0 : parsedBadge
-}
-
-function sortProducts(products, sortBy) {
-  const next = [...products]
-
-  switch (sortBy) {
-    case 'name-asc':
-      return next.sort((left, right) => String(left.name ?? '').localeCompare(String(right.name ?? ''), 'vi'))
-    case 'name-desc':
-      return next.sort((left, right) => String(right.name ?? '').localeCompare(String(left.name ?? ''), 'vi'))
-    case 'price-asc':
-      return next.sort((left, right) => left.price - right.price)
-    case 'price-desc':
-      return next.sort((left, right) => right.price - left.price)
-    case 'newest':
-    default:
-      return next.sort(
-        (left, right) => Number(String(right.id).replace(/\D/g, '')) - Number(String(left.id).replace(/\D/g, '')),
-      )
-  }
-}
-
-function matchesPriceRange(product, rangeKey) {
-  const range = PRICE_RANGES[rangeKey] ?? PRICE_RANGES.all
-
-  if (range.min !== null && product.price < range.min) {
-    return false
-  }
-
-  if (range.max !== null && product.price > range.max) {
-    return false
-  }
-
-  return true
 }
 
 function resolveCollectionMeta(categorySlug, categoryItems) {
@@ -205,11 +158,8 @@ function buildCollectionCards(categorySlug, remoteProducts) {
   return dedupeProducts(remoteCards.filter((product) => product.category === categorySlug))
 }
 
-function CategoryCollectionView({ collectionMeta, collectionProducts, remoteProducts }) {
-  const brandOptions = useMemo(() => {
-    const brands = [...new Set(collectionProducts.map((product) => product.brand).filter(Boolean))]
-    return brands.sort((left, right) => left.localeCompare(right))
-  }, [collectionProducts])
+function CategoryCollectionView({ collectionMeta, collectionProducts }) {
+  const brandOptions = useMemo(() => buildBrandOptions(collectionProducts), [collectionProducts])
 
   const [selectedBrands, setSelectedBrands] = useState([])
   const [selectedPriceRange, setSelectedPriceRange] = useState('all')
@@ -227,28 +177,12 @@ function CategoryCollectionView({ collectionMeta, collectionProducts, remoteProd
     return sortProducts(byPrice, sortBy)
   }, [collectionProducts, selectedBrands, selectedPriceRange, sortBy])
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
-  const visibleProducts = filteredProducts.slice(startIndex, startIndex + PAGE_SIZE)
+  const { totalPages, safeCurrentPage, visibleProducts } = useMemo(
+    () => getVisibleProducts(filteredProducts, currentPage, PAGE_SIZE),
+    [currentPage, filteredProducts],
+  )
   const isFilteredEmpty = collectionProducts.length > 0 && filteredProducts.length === 0
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1)
-    }
-
-    const pages = new Set([1, totalPages, safeCurrentPage])
-
-    if (safeCurrentPage > 2) {
-      pages.add(safeCurrentPage - 1)
-    }
-
-    if (safeCurrentPage < totalPages - 1) {
-      pages.add(safeCurrentPage + 1)
-    }
-
-    return [...pages].sort((left, right) => left - right)
-  }, [safeCurrentPage, totalPages])
+  const paginationPages = useMemo(() => buildPaginationPages(totalPages, safeCurrentPage), [safeCurrentPage, totalPages])
 
   const viewedProducts = useViewedProducts(4)
 
@@ -396,7 +330,6 @@ export default function CategoryPage() {
       key={categorySlug}
       collectionMeta={collectionMeta}
       collectionProducts={collectionProducts}
-      remoteProducts={remoteProducts}
     />
   )
 }

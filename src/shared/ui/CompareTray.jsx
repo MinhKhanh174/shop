@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { ChevronRight, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../../config/routes'
@@ -13,14 +12,12 @@ export function CompareTray() {
   const isTrayCollapsed = useCompareStore((state) => state.isTrayCollapsed)
   const toggleTray = useCompareStore((state) => state.toggleTray)
 
-  const compareIds = useMemo(() => compareItems.map((item) => String(item.id)).filter(Boolean), [compareItems])
-
   if (!compareItems.length || location.pathname === ROUTES.COMPARE) {
     return null
   }
 
   const handleCompareNow = () => {
-    navigate(`${ROUTES.COMPARE}?ids=${compareIds.join(',')}`)
+    navigate(ROUTES.COMPARE)
   }
 
   return (

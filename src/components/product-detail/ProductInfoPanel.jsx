@@ -66,7 +66,7 @@ export function ProductInfoPanel({ product, categoryLabel, oldPrice, formatCurre
             Mua ngay
           </Button>
           <Link
-            to={`${ROUTES.COMPARE}?ids=${product.id}`}
+            to={ROUTES.COMPARE}
             className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
           >
             <BarChart3 size={16} />

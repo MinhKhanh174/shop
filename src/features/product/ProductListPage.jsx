@@ -32,6 +32,11 @@ const PAGE_SIZE = 12
 export default function ProductListPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q')?.trim() ?? ''
+
+  return <ProductListContent key={query} query={query} />
+}
+
+function ProductListContent({ query }) {
   const { products: remoteProducts, loading: remoteLoading } = useHomeData()
   const { searchResults, loading: searchLoading, error: searchError } = useProductSearchResults(query)
 
@@ -47,10 +52,6 @@ export default function ProductListPage() {
       toast.error('Không thể tìm kiếm sản phẩm')
     }
   }, [searchError])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [query])
 
   const baseProducts = useMemo(() => {
     const sourceProducts = query ? searchResults : remoteProducts

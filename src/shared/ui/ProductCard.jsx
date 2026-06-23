@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart3, Plus, Search } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
-import { useCompareStore } from '../../store/useCompareStore'
+import { useCompareActions } from '../../hooks/useCompareActions'
+import { getProductDetailPath } from '../../utils/productRoutes'
 import { AddToCartButton } from './AddToCartButton'
 import { AddToCartSuccessModal } from './AddToCartSuccessModal'
 import { ProductQuickViewModal } from './ProductQuickViewModal'
@@ -12,10 +12,10 @@ export function ProductCard({ product, compact = false }) {
   const [isHovered, setIsHovered] = useState(false)
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
   const [successPayload, setSuccessPayload] = useState(null)
-  const addToCompare = useCompareStore((state) => state.addToCompare)
+  const { addToCompareAndNotify } = useCompareActions()
   const navigate = useNavigate()
 
-  const detailPath = `/products/${product.id}`
+  const detailPath = getProductDetailPath(product)
   const primaryImage = product.image ?? null
   const secondaryImage = product.secondaryImage ?? product.source?.images?.[1] ?? null
   const hasSecondaryImage = Boolean(primaryImage && secondaryImage)
@@ -70,8 +70,7 @@ export function ProductCard({ product, compact = false }) {
                 type="button"
                 onClick={(event) => {
                   stopCardClick(event)
-                  addToCompare(product)
-                  toast.success(`Đã thêm ${product.name} vào so sánh`)
+                  addToCompareAndNotify(product)
                 }}
                 className="product-card__hover-action"
                 aria-label={`So sánh ${product.name}`}

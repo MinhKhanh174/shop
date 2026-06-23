@@ -12,9 +12,12 @@ function normalizeCompareProduct(product) {
     id: product.id,
     name: product.name ?? 'Sản phẩm',
     brand: product.brand ?? '',
+    category: product.category ?? '',
     image: product.image ?? product.thumbnail ?? product.images?.[0] ?? null,
     price,
     priceText: product.priceText ?? formatCurrency(price),
+    specs: product.specs ?? {},
+    source: product.source ?? product,
   }
 }
 
@@ -36,7 +39,11 @@ export const useCompareStore = create((set, get) => ({
 
     set((state) => {
       const withoutCurrent = state.compareItems.filter((item) => String(item.id) !== String(normalized.id))
-      const nextItems = [...withoutCurrent, normalized].slice(-MAX_COMPARE_ITEMS)
+      if (withoutCurrent.length >= MAX_COMPARE_ITEMS) {
+        return {}
+      }
+
+      const nextItems = [...withoutCurrent, normalized]
 
       saveCompareItems(nextItems)
       return { compareItems: nextItems, isTrayCollapsed: false }

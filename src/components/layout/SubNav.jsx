@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
+import { ROUTES } from '../../config/routes'
 import { supportLinks } from '../../data/siteConfig'
 import { CategoryMenu } from './CategoryMenu'
 import { useHomeData } from '../../hooks/useHomeData'
@@ -9,7 +10,7 @@ import { useHomeStore } from '../../store/useHomeStore'
 export function SubNav() {
   const remote = useHomeData()
   const location = useLocation()
-  const isHomeRoute = location.pathname === '/'
+  const isHomeRoute = location.pathname === ROUTES.HOME
   const isCategoryMenuOpen = useHomeStore((state) => state.isCategoryMenuOpen)
   const openCategoryMenu = useHomeStore((state) => state.openCategoryMenu)
   const closeCategoryMenu = useHomeStore((state) => state.closeCategoryMenu)

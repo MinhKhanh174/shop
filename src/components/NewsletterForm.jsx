@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { z } from 'zod'
 import { subscribeNewsletter } from '../services/homeApi'
+import { isValidEmail } from '../utils/formValidation'
 
 const newsletterSchema = z.object({
-  email: z.string().trim().email('Vui lòng nhập email hợp lệ.'),
+  email: z.string().trim().refine((value) => isValidEmail(value), 'Vui lòng nhập email hợp lệ.'),
 })
 
 export function NewsletterForm() {

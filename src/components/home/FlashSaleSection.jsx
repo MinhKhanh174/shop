@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart3, Search, ShoppingCart } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
-import { ROUTES } from '../../config/routes'
+import { getProductDetailPath } from '../../utils/productRoutes'
 import { AddToCartButton } from '../../shared/ui/AddToCartButton'
 import { AddToCartSuccessModal } from '../../shared/ui/AddToCartSuccessModal'
 import { ProductQuickViewModal } from '../../shared/ui/ProductQuickViewModal'
-import { useCompareStore } from '../../store/useCompareStore'
+import { useCompareActions } from '../../hooks/useCompareActions'
 
 function buildTimeParts(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds)
@@ -48,9 +47,9 @@ function useFlashCountdown() {
 function FlashSaleCard({ product }) {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
   const [successPayload, setSuccessPayload] = useState(null)
-  const addToCompare = useCompareStore((state) => state.addToCompare)
+  const { addToCompareAndNotify } = useCompareActions()
   const navigate = useNavigate()
-  const detailPath = ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
+  const detailPath = getProductDetailPath(product)
 
   const handleCardClick = () => {
     navigate(detailPath)
@@ -95,8 +94,7 @@ function FlashSaleCard({ product }) {
               type="button"
               onClick={(event) => {
                 stopCardClick(event)
-                addToCompare(product)
-                toast.success(`Đã thêm ${product.name} vào so sánh`)
+                addToCompareAndNotify(product)
               }}
               className="flash-sale-card__hover-action"
               aria-label={`So sánh ${product.name}`}

@@ -1,6 +1,6 @@
 import { articles } from '../data/siteConfig'
 import { BLOG_ARTICLE_DETAILS } from '../data/blogArticleDetails'
-import { ROUTES } from '../config/routes'
+import { ROUTES } from '../constants/routes'
 import { buildArticleThumb } from './articleThumb'
 
 function normalizeText(value) {
@@ -23,14 +23,16 @@ function enrichArticle(article) {
 
 export const blogArticles = articles.map(enrichArticle)
 
-export function getBlogArticleById(articleId) {
-  const normalized = normalizeText(articleId)
+export function getBlogArticleBySlug(articleSlug) {
+  const normalized = normalizeText(articleSlug)
 
   return (
     blogArticles.find((article) => normalizeText(article.id) === normalized || normalizeText(article.slug) === normalized) ??
     null
   )
 }
+
+export const getBlogArticleById = getBlogArticleBySlug
 
 export function getRelatedBlogArticleForProduct(product) {
   if (!product) {
@@ -56,6 +58,6 @@ export function getRelatedBlogArticleForProduct(product) {
 }
 
 export function buildBlogArticlePath(article) {
-  const articleId = typeof article === 'string' ? article : article?.id
-  return ROUTES.BLOG_DETAIL.replace(':articleId', articleId ?? '')
+  const articleSlug = typeof article === 'string' ? article : article?.slug ?? article?.id
+  return ROUTES.BLOG_DETAIL.replace(':articleSlug', encodeURIComponent(articleSlug ?? ''))
 }

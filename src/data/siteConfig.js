@@ -3,11 +3,12 @@ import { ROUTES } from '../config/routes'
 
 export const topActions = [
   { id: 'phone', label: 'Gọi mua hàng', value: '19006750', iconKey: 'phone' },
-  { id: 'store', label: 'Hệ thống', value: 'cửa hàng', iconKey: 'map-pin' },
+  { id: 'store', label: 'Hệ thống', value: 'cửa hàng', iconKey: 'map-pin', to: ROUTES.STORE_SYSTEM },
   {
     id: 'account',
     label: 'Tài khoản',
     iconKey: 'user',
+    to: ROUTES.ACCOUNT,
     links: [{ label: 'Đăng nhập', to: ROUTES.LOGIN }],
   },
 ]

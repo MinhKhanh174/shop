@@ -1,12 +1,22 @@
+import { Link } from 'react-router-dom'
 import { Mail, MapPin, Smartphone } from 'lucide-react'
 import { NewsletterForm } from '../../components/NewsletterForm'
-import brandLogo from '../../assets/logo1.png'
+import { ROUTES } from '../../config/routes'
+import brandLogo from '../../assets/tech-do.png'
 import paymentImage from '../../assets/PTTT.png'
 import facebookIcon from '../../assets/UngDung/Fb.png'
 import zaloIcon from '../../assets/UngDung/Zalo.png'
 import instagramIcon from '../../assets/UngDung/Intas.png'
 
-const supportLinks = ['Giới thiệu', 'Liên hệ', 'Hệ thống cửa hàng', 'Hướng dẫn trả góp', 'Hướng dẫn mua hàng Online', 'Thu mua máy cũ', 'Câu hỏi thường gặp']
+const supportLinks = [
+  { label: 'Giới thiệu', to: ROUTES.HOME },
+  { label: 'Liên hệ', to: ROUTES.HOME },
+  { label: 'Hệ thống cửa hàng', to: ROUTES.STORE_SYSTEM },
+  { label: 'Hướng dẫn trả góp', to: ROUTES.GUIDE_INSTALLMENT },
+  { label: 'Hướng dẫn mua hàng Online', to: ROUTES.GUIDE_BUY_ONLINE },
+  { label: 'Thu mua máy cũ', to: ROUTES.GUIDE_SELL_USED },
+  { label: 'Câu hỏi thường gặp', to: ROUTES.ACCOUNT },
+]
 
 const policyLinks = ['Chính sách bảo mật', 'Chính sách đổi trả', 'Chính sách bảo hành', 'Chính sách đặt cọc giữ hàng']
 
@@ -52,7 +62,9 @@ export function SiteFooter() {
 
       <div className="footer__content">
         <div className="footer__brand">
-          <img className="footer__logo" src={brandLogo} alt="techstore.com" />
+          <Link to={ROUTES.HOME} aria-label="techstore.com">
+            <img className="footer__logo" src={brandLogo} alt="techstore.com" />
+          </Link>
 
           <div className="footer__contact">
             <p>
@@ -80,7 +92,9 @@ export function SiteFooter() {
           <h3>Hỗ trợ khách hàng</h3>
           <ul>
             {supportLinks.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item.label}>
+                <Link to={item.to}>{item.label}</Link>
+              </li>
             ))}
           </ul>
         </div>

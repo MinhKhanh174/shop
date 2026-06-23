@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, X } from 'lucide-react'
-import toast from 'react-hot-toast'
 import paymentMethods from '../../assets/PTTT.png'
 import voucherIcon from '../../assets/vourcher.png'
 import { useHomeData } from '../../hooks/useHomeData'
@@ -10,6 +9,7 @@ import { ROUTES } from '../../config/routes'
 import { coupons } from '../../data/siteConfig'
 import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
+import { getProductDetailPath } from '../../utils/productRoutes'
 import { ProductRail } from '../../shared/ui/ProductRail'
 import { CopyCodeButton } from '../../shared/ui/CopyCodeButton'
 import { CouponConditionModal } from '../../shared/ui/CouponConditionModal'
@@ -114,23 +114,16 @@ function CartItemRow({ item, onDecrease, onIncrease, onQuantityChange, onRemove 
   const maxQuantity = Number.isFinite(Number(item.stock)) ? Math.max(1, Number(item.stock)) : null
   const canDecrease = Number(item.quantity) > 1
   const canIncrease = maxQuantity === null || Number(item.quantity) < maxQuantity
-  const [draftQuantity, setDraftQuantity] = useState(String(item.quantity ?? 1))
-
-  useEffect(() => {
-    setDraftQuantity(String(item.quantity ?? 1))
-  }, [item.quantity])
 
   const commitQuantity = (nextValue) => {
     const parsed = Number(nextValue)
 
     if (!Number.isFinite(parsed)) {
-      setDraftQuantity(String(item.quantity ?? 1))
       return
     }
 
     const nextQuantity = Math.max(1, maxQuantity === null ? parsed : Math.min(maxQuantity, parsed))
     onQuantityChange(nextQuantity)
-    setDraftQuantity(String(nextQuantity))
   }
 
   return (
@@ -142,7 +135,7 @@ function CartItemRow({ item, onDecrease, onIncrease, onQuantityChange, onRemove 
       <img src={item.image} alt={item.name} className="cart-item__image" />
 
       <div className="cart-item__info">
-        <Link to={ROUTES.PRODUCT_DETAIL.replace(':productId', String(item.id))} className="cart-item__name">
+        <Link to={getProductDetailPath(item)} className="cart-item__name">
           {item.name}
         </Link>
         <p className="cart-item__variant">{item.brand ? `${item.brand} / ` : ''}128GB</p>
@@ -158,14 +151,8 @@ function CartItemRow({ item, onDecrease, onIncrease, onQuantityChange, onRemove 
           type="number"
           min="1"
           max={maxQuantity ?? undefined}
-          value={draftQuantity}
-          onChange={(event) => setDraftQuantity(event.target.value)}
-          onBlur={(event) => commitQuantity(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.currentTarget.blur()
-            }
-          }}
+          value={item.quantity}
+          onChange={(event) => commitQuantity(event.target.value)}
           inputMode="numeric"
           aria-label={`Nhập số lượng ${item.name}`}
         />
@@ -177,25 +164,16 @@ function CartItemRow({ item, onDecrease, onIncrease, onQuantityChange, onRemove 
   )
 }
 
-function CartSummary({ cartItems, totalPrice, onCheckout, onOpenVoucherDrawer }) {
-  const pickupDays = getPickupDays(cartItems)
+function CartSummary({ totalPrice, onCheckout, onOpenVoucherDrawer, pickupDays }) {
   const minimumDate = startOfDay(new Date())
   const defaultPickupDate = startOfDay(addDays(new Date(), pickupDays))
-  const [selectedDate, setSelectedDate] = useState(defaultPickupDate)
+  const [selectedDate, setSelectedDate] = useState(() => defaultPickupDate)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [selectedTime, setSelectedTime] = useState('')
   const [isTimeOpen, setIsTimeOpen] = useState(false)
-  const [viewMonth, setViewMonth] = useState(
-    () => new Date(defaultPickupDate.getFullYear(), defaultPickupDate.getMonth(), 1),
-  )
+  const [viewMonth, setViewMonth] = useState(() => new Date(defaultPickupDate.getFullYear(), defaultPickupDate.getMonth(), 1))
   const calendarRef = useRef(null)
   const timeRef = useRef(null)
-
-  useEffect(() => {
-    const nextDefault = startOfDay(addDays(new Date(), pickupDays))
-    setSelectedDate(nextDefault)
-    setViewMonth(new Date(nextDefault.getFullYear(), nextDefault.getMonth(), 1))
-  }, [pickupDays])
 
   useEffect(() => {
     function handleDocumentClick(event) {
@@ -466,6 +444,7 @@ function VoucherDrawer({ open, coupons, onClose, onOpenCondition }) {
 
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, totalPrice } = useCart()
+  const navigate = useNavigate()
   const { products: remoteProducts = [] } = useHomeData()
   const [note, setNote] = useState('')
   const [isVoucherDrawerOpen, setIsVoucherDrawerOpen] = useState(false)
@@ -489,6 +468,7 @@ export default function CartPage() {
       }),
     [cartItems, productById],
   )
+  const pickupDays = useMemo(() => getPickupDays(cartItemsWithStock), [cartItemsWithStock])
   const relatedProducts = useMemo(
     () => buildRelatedProductsByReference(remoteProducts, cartItemsWithStock, 9),
     [cartItemsWithStock, remoteProducts],
@@ -517,7 +497,7 @@ export default function CartPage() {
   }, [isVoucherDrawerOpen])
 
   const handleCheckout = () => {
-    toast('Tính năng thanh toán sẽ sớm ra mắt', { icon: '🛒' })
+    navigate(ROUTES.CHECKOUT)
   }
 
   return (
@@ -550,10 +530,11 @@ export default function CartPage() {
             </section>
 
             <CartSummary
-              cartItems={cartItemsWithStock}
+              key={pickupDays}
               totalPrice={totalPrice}
               onCheckout={handleCheckout}
               onOpenVoucherDrawer={() => setIsVoucherDrawerOpen(true)}
+              pickupDays={pickupDays}
             />
           </div>
 

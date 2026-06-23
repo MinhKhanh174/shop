@@ -12,6 +12,7 @@ import {
   extractStorageOptions,
   resolveGalleryImages,
 } from '../../features/product/productDetail.utils'
+import { buildAddToCartSuccessPayload } from '../product/productActionUtils'
 import { AddToCartButton } from './AddToCartButton'
 
 function getPrimaryProductImage(product, galleryImages) {
@@ -23,29 +24,8 @@ function getPrimaryProductImage(product, galleryImages) {
 }
 
 export function ProductQuickViewModal({ open, product, onClose, onAddedToCart }) {
-  const addToCart = useCartStore((state) => state.addToCart)
-  const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0)
-  const [selectedStorageIndex, setSelectedStorageIndex] = useState(0)
-  const [quantity, setQuantity] = useState(1)
-
-  const galleryImages = useMemo(() => resolveGalleryImages(product), [product])
-  const colorOptions = useMemo(() => extractColorOptions(product), [product])
-  const storageOptions = useMemo(() => extractStorageOptions(product), [product])
-  const productCode = useMemo(() => buildProductCode(product), [product])
-  const primaryImage = useMemo(() => getPrimaryProductImage(product, galleryImages), [product, galleryImages])
-
   useEffect(() => {
-    if (!open) return
-
-    setActiveImageIndex(0)
-    setSelectedColorIndex(0)
-    setSelectedStorageIndex(0)
-    setQuantity(1)
-  }, [open, product?.id])
-
-  useEffect(() => {
-    if (!open) return undefined
+    if (!open || typeof document === 'undefined') return undefined
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -64,9 +44,33 @@ export function ProductQuickViewModal({ open, product, onClose, onAddedToCart })
     }
   }, [open, onClose])
 
-  if (!open || !product) {
+  if (!open || !product || typeof document === 'undefined') {
     return null
   }
+
+  return createPortal(
+    <ProductQuickViewModalContent
+      key={product.id ?? product.slug ?? product.name ?? 'product'}
+      product={product}
+      onClose={onClose}
+      onAddedToCart={onAddedToCart}
+    />,
+    document.body,
+  )
+}
+
+function ProductQuickViewModalContent({ product, onClose, onAddedToCart }) {
+  const addToCart = useCartStore((state) => state.addToCart)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0)
+  const [selectedStorageIndex, setSelectedStorageIndex] = useState(0)
+  const [quantity, setQuantity] = useState(1)
+
+  const galleryImages = useMemo(() => resolveGalleryImages(product), [product])
+  const colorOptions = useMemo(() => extractColorOptions(product), [product])
+  const storageOptions = useMemo(() => extractStorageOptions(product), [product])
+  const productCode = useMemo(() => buildProductCode(product), [product])
+  const primaryImage = useMemo(() => getPrimaryProductImage(product, galleryImages), [product, galleryImages])
 
   const images = galleryImages.length > 0 ? galleryImages : primaryImage ? [primaryImage] : []
   const currentImage = images[activeImageIndex] ?? primaryImage
@@ -111,25 +115,21 @@ export function ProductQuickViewModal({ open, product, onClose, onAddedToCart })
     const selectedColor = colorOptions[selectedColorIndex]?.label
     const selectedStorage = storageOptions[selectedStorageIndex]
     const variant = [selectedColor, selectedStorage].filter(Boolean).join(' / ')
-    const cartItems = useCartStore.getState().cartItems
-    const cartTotal = cartItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0)
-    const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
 
     onClose?.()
-    onAddedToCart?.({
-      id: product.id,
-      name: product.name,
-      image: primaryImage ?? product.image ?? null,
-      variant: variant || product.label || '',
-      cartTotalText: formatCurrency(cartTotal),
-      cartCountText: `(${cartCount}) sản phẩm`,
-    })
+    onAddedToCart?.(
+      buildAddToCartSuccessPayload(product, {
+        quantity,
+        variant: variant || product.label || '',
+        image: primaryImage ?? product.image ?? null,
+      }),
+    )
   }
 
   const canDecrease = quantity > 1
   const canIncrease = typeof product.stock === 'number' ? quantity < product.stock : true
 
-  const modal = (
+  return (
     <div className="product-quick-view-modal" role="presentation" onClick={() => onClose?.()}>
       <section
         className="product-quick-view-modal__dialog"
@@ -300,11 +300,7 @@ export function ProductQuickViewModal({ open, product, onClose, onAddedToCart })
             <AddToCartButton className="product-quick-view-modal__primary" icon={ShoppingCart} onClick={handleAddToCart}>
               THÊM VÀO GIỎ
             </AddToCartButton>
-            <Link
-              to={ROUTES.GUIDE_INSTALLMENT}
-              className="product-quick-view-modal__secondary"
-              onClick={onClose}
-            >
+            <Link to={ROUTES.GUIDE_INSTALLMENT} className="product-quick-view-modal__secondary" onClick={onClose}>
               <span>MUA TRẢ GÓP</span>
               <small>Duyệt hồ sơ trong 5 phút</small>
             </Link>
@@ -313,10 +309,4 @@ export function ProductQuickViewModal({ open, product, onClose, onAddedToCart })
       </section>
     </div>
   )
-
-  if (typeof document === 'undefined') {
-    return null
-  }
-
-  return createPortal(modal, document.body)
 }

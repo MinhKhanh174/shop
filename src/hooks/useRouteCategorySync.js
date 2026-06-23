@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { ROUTES } from '../config/routes'
 import { useHomeStore } from '../store/useHomeStore'
 
 export function useRouteCategorySync() {
   const location = useLocation()
-  const isHomeRoute = location.pathname === '/'
+  const isHomeRoute = location.pathname === ROUTES.HOME
   const openCategoryMenu = useHomeStore((state) => state.openCategoryMenu)
   const closeCategoryMenu = useHomeStore((state) => state.closeCategoryMenu)
 

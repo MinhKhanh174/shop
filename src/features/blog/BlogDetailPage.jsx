@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ROUTES } from '../../config/routes'
 import { useHomeData } from '../../hooks/useHomeData'
 import { mapProductsToCards } from '../../utils/productMapper'
-import { blogArticles, buildBlogArticlePath, getBlogArticleById } from '../../utils/blogArticles'
+import { blogArticles, buildBlogArticlePath, getBlogArticleBySlug } from '../../utils/blogArticles'
 import { ProductRail } from '../../shared/ui/ProductRail'
 import './BlogDetailPage.css'
 
@@ -34,7 +34,7 @@ function buildArticleRelatedProducts(remoteProducts, article) {
 }
 
 function BlogBreadcrumb({ article }) {
-  const categoryRoute = article.category === 'KINH NGHIỆM HAY - MẸO VẶT' ? ROUTES.TIPS : ROUTES.NEWS
+  const categoryRoute = article.category === 'KINH NGHIỆM HAY - MẸO VẶT' ? ROUTES.BLOG_TIPS : ROUTES.BLOG_NEWS
 
   return (
     <nav className="blog-detail__breadcrumb" aria-label="Breadcrumb">
@@ -77,8 +77,8 @@ function RelatedProducts({ article }) {
 }
 
 export default function BlogDetailPage() {
-  const { articleId } = useParams()
-  const article = getBlogArticleById(articleId)
+  const { articleSlug } = useParams()
+  const article = getBlogArticleBySlug(articleSlug)
 
   if (!article) {
     return (

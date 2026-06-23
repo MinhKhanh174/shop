@@ -3,10 +3,14 @@ import { getProductById } from '../../../services/productService.js'
 
 export function useProductDetail(productId) {
   const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(productId))
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!productId) {
+      return undefined
+    }
+
     let active = true
 
     getProductById(productId)
@@ -29,6 +33,14 @@ export function useProductDetail(productId) {
       active = false
     }
   }, [productId])
+
+  if (!productId) {
+    return {
+      product: null,
+      loading: false,
+      error: null,
+    }
+  }
 
   return {
     product,

@@ -9,6 +9,7 @@ import { ROUTES } from '../../config/routes'
 import { useHomeData } from '../../hooks/useHomeData'
 import { useCartStore } from '../../store/useCartStore'
 import { useHomeStore } from '../../store/useHomeStore'
+import { hasAuthSession } from '../../utils/authStorage'
 import { SearchBar } from './SearchBar'
 import { formatCurrency } from '../../utils/currency'
 
@@ -24,6 +25,7 @@ export function HeaderTop({ isScrolled = false }) {
   const remote = useHomeData()
   const location = useLocation()
   const isHomeRoute = location.pathname === ROUTES.HOME
+  const isAuthenticated = hasAuthSession()
   const isCategoryMenuOpen = useHomeStore((state) => state.isCategoryMenuOpen)
   const openCategoryMenu = useHomeStore((state) => state.openCategoryMenu)
   const closeCategoryMenu = useHomeStore((state) => state.closeCategoryMenu)
@@ -80,7 +82,7 @@ export function HeaderTop({ isScrolled = false }) {
   }
 
   const totalPrice = cartItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0)
-  const previewItems = cartItems.slice(0, 2)
+  const previewItems = cartItems
 
   return (
     <header className={`header${isScrolled ? ' header--scrolled' : ''}`}>
@@ -120,8 +122,28 @@ export function HeaderTop({ isScrolled = false }) {
           {topActions.map((item) => {
             const Icon = actionIcons[item.iconKey]
 
-            return (
-              <div key={item.id} className="header-action">
+            if (item.id === 'account' && item.links?.length) {
+              const accountLink = isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN
+
+              return (
+                <div key={item.id} className="header-action">
+                  {Icon ? <Icon size={18} /> : null}
+                  <div>
+                    <Link to={accountLink}>
+                      <span>{item.label}</span>
+                    </Link>
+                    {item.links.map((link) => (
+                      <Link key={link.label} to={link.to} className="header-action__link">
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+
+            const actionBody = (
+              <>
                 {Icon ? <Icon size={18} /> : null}
                 <div>
                   <span>{item.label}</span>
@@ -137,7 +159,19 @@ export function HeaderTop({ isScrolled = false }) {
                     <strong>{item.value}</strong>
                   )}
                 </div>
-              </div>
+              </>
+            )
+
+            return (
+              item.to ? (
+                <Link key={item.id} to={item.to} className="header-action">
+                  {actionBody}
+                </Link>
+              ) : (
+                <div key={item.id} className="header-action">
+                  {actionBody}
+                </div>
+              )
             )
           })}
 
@@ -172,7 +206,7 @@ export function HeaderTop({ isScrolled = false }) {
               <Card className="cart-preview">
                 {cartItems.length > 0 ? (
                   <>
-                    <div className="cart-preview__items">
+                    <div className="cart-preview__items" aria-label="Danh sách sản phẩm trong giỏ hàng">
                       {previewItems.map((item) => (
                         <div key={item.id} className="cart-preview__item">
                           <img src={item.image} alt={item.name} className="cart-preview__thumb" />

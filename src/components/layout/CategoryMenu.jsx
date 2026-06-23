@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useHomeStore } from '../../store/useHomeStore'
 import { buildCategoryMegaGroups } from '../../utils/categoryMenuBuilder'
 import { getCategoryCollectionPath } from '../../utils/categoryRoutes'
+import { ROUTES } from '../../config/routes'
 
 function CategoryMegaPanel({ categoryKey, remoteProducts }) {
   const groups = useMemo(() => buildCategoryMegaGroups(remoteProducts, categoryKey), [remoteProducts, categoryKey])
@@ -60,7 +61,7 @@ function MenuItemLink({ linkMode, item, onEnter, children }) {
 
 export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode = 'anchor' }) {
   const location = useLocation()
-  const isHomeRoute = location.pathname === '/'
+  const isHomeRoute = location.pathname === ROUTES.HOME
   const isOpen = useHomeStore((state) => state.isCategoryMenuOpen)
 
   const categoriesToUse = useMemo(
@@ -82,7 +83,6 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
   const [activeCategory, setActiveCategory] = useState(null)
   const [isMegaOpen, setIsMegaOpen] = useState(false)
   const closeTimerRef = useRef(null)
-  const closeDelayMs = 60
 
   const activeGroups = useMemo(() => {
     if (!activeCategory) return []
@@ -104,13 +104,6 @@ export function CategoryMenu({ remoteProducts = [], categoryItems = [], linkMode
   const openMegaPanel = () => {
     clearCloseTimer()
     setIsMegaOpen(true)
-  }
-
-  const scheduleCloseMegaPanel = () => {
-    clearCloseTimer()
-    closeTimerRef.current = window.setTimeout(() => {
-      setIsMegaOpen(false)
-    }, closeDelayMs)
   }
 
   const handleLeaveCategoryMenu = () => {

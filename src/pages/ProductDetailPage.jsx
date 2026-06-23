@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,12 +13,13 @@ import {
   Gift,
   BadgePercent,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { useHomeData } from '../hooks/useHomeData'
 import { useCart } from '../hooks/useCart'
 import { useAddToCartSuccessFlow } from '../hooks/useAddToCartSuccessFlow'
+import { useCompareActions } from '../hooks/useCompareActions'
 import { ROUTES } from '../config/routes'
 import { formatCurrency } from '../utils/formatCurrency'
+import { findProductBySlug, getProductDetailPath, getProductSlug } from '../utils/productRoutes'
 import { mapProductsToCards } from '../utils/productMapper'
 import { getViewedProducts, saveViewedProductId } from '../utils/viewedProducts'
 import { getCategoryCollectionPath } from '../utils/categoryRoutes'
@@ -26,7 +27,6 @@ import { buildBlogArticlePath, getRelatedBlogArticleForProduct } from '../utils/
 import { ProductRail } from '../shared/ui/ProductRail'
 import { CopyCodeButton } from '../shared/ui/CopyCodeButton'
 import { useProductDetail } from '../features/product/hooks/useProductDetail'
-import { useCompareStore } from '../store/useCompareStore'
 import { coupons } from '../data/siteConfig'
 import {
   buildCategoryLabel,
@@ -47,7 +47,7 @@ function ProductDetailContent({ productId }) {
   const { product, loading } = useProductDetail(productId)
   const { products: remoteProducts = [], categoryItems = [] } = useHomeData()
   const { addToCart } = useCart()
-  const addToCompare = useCompareStore((state) => state.addToCompare)
+  const { addToCompareAndNotify } = useCompareActions()
   const { handleAddToCart: submitAddToCart, successModal } = useAddToCartSuccessFlow()
   const [quantity, setQuantity] = useState(1)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -61,20 +61,6 @@ function ProductDetailContent({ productId }) {
       saveViewedProductId(product.id)
     }
   }, [product])
-
-  useEffect(() => {
-    setQuantity(1)
-    setActiveImageIndex(0)
-    setSelectedColorIndex(0)
-    setSelectedStorageIndex(0)
-    setIsSpecsOpen(false)
-  }, [productId])
-
-  useEffect(() => {
-    if (maxQuantity !== null) {
-      setQuantity((current) => Math.min(current, maxQuantity))
-    }
-  }, [maxQuantity])
 
   const galleryImages = useMemo(() => resolveGalleryImages(product), [product])
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0]
@@ -124,7 +110,7 @@ function ProductDetailContent({ productId }) {
         <div className="pd-page__container">
           <ProductBreadcrumb
             items={[
-              { label: 'Trang chủ', to: '/' },
+              { label: 'Trang chủ', to: ROUTES.HOME },
               { label: 'Sản phẩm', to: ROUTES.PRODUCTS },
               { label: 'Không tìm thấy' },
             ]}
@@ -174,8 +160,7 @@ function ProductDetailContent({ productId }) {
   }
 
   const handleAddToCompare = () => {
-    addToCompare(product)
-    toast.success(`Đã thêm ${product.name} vào so sánh`)
+    addToCompareAndNotify(product)
   }
 
   const promoLines = [
@@ -191,7 +176,7 @@ function ProductDetailContent({ productId }) {
       <div className="pd-page__container">
         <ProductBreadcrumb
           items={[
-            { label: 'Trang chủ', to: '/' },
+            { label: 'Trang chủ', to: ROUTES.HOME },
             { label: categoryLabel, to: getCategoryCollectionPath(String(product.source?.category ?? '')) },
             { label: product.name },
           ]}
@@ -572,7 +557,56 @@ function ProductDetailContent({ productId }) {
 }
 
 export default function ProductDetailPage() {
-  const { productId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { productSlug } = useParams()
+  const { products: remoteProducts = [], loading: homeLoading } = useHomeData()
 
-  return <ProductDetailContent key={productId} productId={productId} />
+  const resolvedProduct = useMemo(() => {
+    if (productSlug) {
+      return findProductBySlug(remoteProducts, productSlug)
+    }
+
+    return null
+  }, [productSlug, remoteProducts])
+
+  const resolvedProductId = resolvedProduct?.id ?? null
+  const resolvedSlug = resolvedProduct ? getProductSlug(resolvedProduct) : ''
+
+  useEffect(() => {
+    if (!resolvedProduct || !productSlug) {
+      return
+    }
+
+    if (!location.pathname.startsWith(`${ROUTES.PRODUCTS}/`) && resolvedSlug) {
+      navigate(getProductDetailPath(resolvedProduct), { replace: true })
+      return
+    }
+
+    if (resolvedSlug && resolvedSlug !== productSlug) {
+      navigate(getProductDetailPath(resolvedProduct), { replace: true })
+    }
+  }, [location.pathname, navigate, productSlug, resolvedProduct, resolvedSlug])
+
+  if (homeLoading && !resolvedProductId) {
+    return <ProductDetailSkeleton />
+  }
+
+  if (!resolvedProductId) {
+    return (
+      <div className="pd-page">
+        <div className="pd-page__container">
+          <div className="pd-empty">
+            <p className="pd-empty__title">Sản phẩm không tồn tại</p>
+            <p className="pd-empty__text">Trang chi tiết này không còn dữ liệu hoặc sản phẩm đã bị xóa.</p>
+            <Link to={ROUTES.PRODUCTS} className="pd-empty__button">
+              Quay về danh sách
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <ProductDetailContent key={resolvedProductId} productId={resolvedProductId} />
 }

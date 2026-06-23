@@ -1,15 +1,1 @@
-export const ROUTES = {
-  HOME: '/',
-  COLLECTION: '/collections/:categorySlug',
-  PRODUCTS: '/products',
-  PRODUCT_DETAIL: '/products/:productId',
-  NEWS: '/tin-tuc',
-  TIPS: '/meo-vat',
-  BLOG_DETAIL: '/blog/:articleId',
-  GUIDE_SELL_USED: '/huong-dan-ban-may-cu',
-  GUIDE_BUY_ONLINE: '/huong-dan-mua-hang-online',
-  GUIDE_INSTALLMENT: '/huong-dan-tra-gop',
-  COMPARE: '/compare',
-  CART: '/cart',
-  LOGIN: '/login',
-}
+export { ROUTES, buildAccountOrderPath, buildSearchPath } from '../constants/routes'

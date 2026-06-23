@@ -1,29 +1,29 @@
 ﻿import { mapProductsToCards } from '../../utils/productMapper'
 
 const COLOR_DEFINITIONS = [
-  { key: 'white', label: 'Tráº¯ng', swatch: '#ffffff', border: '#cbd5e1' },
-  { key: 'black', label: 'Äen', swatch: '#111111', border: '#111111' },
-  { key: 'gray', label: 'XĂ¡m', swatch: '#94a3b8', border: '#94a3b8' },
-  { key: 'blue', label: 'Xanh dÆ°Æ¡ng', swatch: '#0ea5e9', border: '#0ea5e9' },
-  { key: 'red', label: 'Äá»', swatch: '#ef1f1f', border: '#ef1f1f' },
-  { key: 'green', label: 'Xanh lĂ¡', swatch: '#22c55e', border: '#22c55e' },
-  { key: 'gold', label: 'VĂ ng', swatch: '#f59e0b', border: '#f59e0b' },
-  { key: 'silver', label: 'Báº¡c', swatch: '#d1d5db', border: '#9ca3af' },
-  { key: 'pink', label: 'Há»“ng', swatch: '#ec4899', border: '#ec4899' },
-  { key: 'purple', label: 'TĂ­m', swatch: '#a855f7', border: '#a855f7' },
+  { key: 'white', label: 'Trắng', swatch: '#ffffff', border: '#cbd5e1' },
+  { key: 'black', label: 'Đen', swatch: '#111111', border: '#111111' },
+  { key: 'gray', label: 'Xám', swatch: '#94a3b8', border: '#94a3b8' },
+  { key: 'blue', label: 'Xanh dương', swatch: '#0ea5e9', border: '#0ea5e9' },
+  { key: 'red', label: 'Đỏ', swatch: '#ef1f1f', border: '#ef1f1f' },
+  { key: 'green', label: 'Xanh lá', swatch: '#22c55e', border: '#22c55e' },
+  { key: 'gold', label: 'Vàng', swatch: '#f59e0b', border: '#f59e0b' },
+  { key: 'silver', label: 'Bạc', swatch: '#d1d5db', border: '#9ca3af' },
+  { key: 'pink', label: 'Hồng', swatch: '#ec4899', border: '#ec4899' },
+  { key: 'purple', label: 'Tím', swatch: '#a855f7', border: '#a855f7' },
 ]
 
 const COLOR_PATTERNS = [
-  { regex: /tráº¯ng|white/i, key: 'white' },
-  { regex: /Ä‘en|black/i, key: 'black' },
-  { regex: /xĂ¡m|gray|grey/i, key: 'gray' },
-  { regex: /xanh dÆ°Æ¡ng|blue|navy|sky/i, key: 'blue' },
-  { regex: /Ä‘á»|red/i, key: 'red' },
-  { regex: /xanh lĂ¡|green/i, key: 'green' },
-  { regex: /vĂ ng|gold/i, key: 'gold' },
-  { regex: /báº¡c|silver/i, key: 'silver' },
-  { regex: /há»“ng|pink/i, key: 'pink' },
-  { regex: /tĂ­m|purple/i, key: 'purple' },
+  { regex: /trắng|white/i, key: 'white' },
+  { regex: /đen|black/i, key: 'black' },
+  { regex: /xám|gray|grey/i, key: 'gray' },
+  { regex: /xanh dương|blue|navy|sky/i, key: 'blue' },
+  { regex: /đỏ|red/i, key: 'red' },
+  { regex: /xanh lá|green/i, key: 'green' },
+  { regex: /vàng|gold/i, key: 'gold' },
+  { regex: /bạc|silver/i, key: 'silver' },
+  { regex: /hồng|pink/i, key: 'pink' },
+  { regex: /tím|purple/i, key: 'purple' },
 ]
 
 export function buildCategoryLabel(categorySlug, categoryItems) {
@@ -201,7 +201,7 @@ export function isPhoneAccessoryProduct(item) {
     .join(' ')
     .toLowerCase()
 
-  return /accessory|phu kien|phá»¥ kiá»‡n|cable|charger|case|á»‘p|op lung|screen|tai nghe|earbuds|earphones|headphones|power bank|pin sac|sáº¡c dá»± phĂ²ng|loa|speaker/.test(
+  return /accessory|phu kien|phụ kiện|cable|charger|case|ốp|op lung|screen|tai nghe|earbuds|earphones|headphones|power bank|pin sac|sạc dự phòng|loa|speaker/.test(
     text,
   )
 }
@@ -235,7 +235,7 @@ export function buildRelatedProductsByReference(remoteProducts, referenceItems, 
   const { brands, categories, ids } = collectReferenceSignals(referenceItems)
   if (!brands.size && !categories.size) return []
 
-  const mappedProducts = mapProductsToCards(remoteProducts, { label: 'Tráº£ gĂ³p 0%' })
+  const mappedProducts = mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' })
 
   const related = mappedProducts.filter((item) => {
     if (ids.has(String(item.id))) {

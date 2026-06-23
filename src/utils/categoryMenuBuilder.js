@@ -1,3 +1,5 @@
+import { getProductDetailPath } from './productRoutes'
+
 const techCategoryMap = {
   featured: [],
   phone: ['smartphones'],
@@ -108,7 +110,7 @@ function makeGroupTitle(categoryKey, brand) {
 }
 
 function makeLink(product) {
-  return ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))
+  return getProductDetailPath(product)
 }
 
 export function buildCategoryMegaGroups(remoteProducts, categoryKey) {
@@ -166,4 +168,3 @@ export function buildCategoryMegaGroups(remoteProducts, categoryKey) {
     }
   })
 }
-import { ROUTES } from '../config/routes'

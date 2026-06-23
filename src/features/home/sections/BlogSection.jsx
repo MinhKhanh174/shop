@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom'
 import { ROUTES } from '../../../config/routes'
 import { articles } from '../../../data/siteConfig'
 import { buildArticleThumb } from '../../../utils/articleThumb'
+import { buildBlogArticlePath } from '../../../utils/blogArticles'
 
 const columnConfigs = [
   {
     title: '24H CÔNG NGHỆ',
     category: '24H CÔNG NGHỆ',
-    moreRoute: ROUTES.NEWS,
+    moreRoute: ROUTES.BLOG_NEWS,
     tones: [
       ['#c08a43', '#f7d9a0'],
       ['#a7d8d9', '#e8fbfb'],
@@ -19,7 +20,7 @@ const columnConfigs = [
   {
     title: 'KINH NGHIỆM HAY - MẸO VẶT',
     category: 'KINH NGHIỆM HAY - MẸO VẶT',
-    moreRoute: ROUTES.TIPS,
+    moreRoute: ROUTES.BLOG_TIPS,
     tones: [
       ['#d8d8d8', '#f4f6f8'],
       ['#1a1a1a', '#5d5d5d'],
@@ -56,7 +57,7 @@ export function BlogSection() {
               {column.rows.map((article) => (
                 <Link
                   key={article.id}
-                  to={ROUTES.BLOG_DETAIL.replace(':articleId', article.id)}
+                  to={buildBlogArticlePath(article)}
                   className="article-row"
                 >
                   <div className="article-row__thumb">

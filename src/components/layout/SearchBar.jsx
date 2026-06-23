@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ROUTES } from '../../config/routes'
+import { buildSearchPath } from '../../config/routes'
 import { useProductSearchResults } from '../../features/product/hooks/useProductSearchResults'
+import { getProductDetailPath } from '../../utils/productRoutes'
 
 const searchHints = [
   'Nhập tên sản phẩm..',
@@ -69,7 +70,7 @@ export function SearchBar() {
       return
     }
 
-    navigate(`${ROUTES.PRODUCTS}?q=${encodeURIComponent(query)}`)
+    navigate(buildSearchPath(query))
   }
 
   return (
@@ -95,7 +96,7 @@ export function SearchBar() {
         <div className="searchbar__suggestions" role="listbox" aria-label={`Kết quả tìm kiếm cho ${debouncedTerm}`}>
           <div className="searchbar__suggestions-header">
             <strong>Kết quả tìm kiếm cho {debouncedTerm}</strong>
-            <Link to={`${ROUTES.PRODUCTS}?q=${encodeURIComponent(debouncedTerm)}`}>Xem tất cả</Link>
+            <Link to={buildSearchPath(debouncedTerm)}>Xem tất cả</Link>
           </div>
 
           {loading ? (
@@ -105,7 +106,7 @@ export function SearchBar() {
               {suggestionItems.map((product) => (
                 <Link
                   key={product.id}
-                  to={ROUTES.PRODUCT_DETAIL.replace(':productId', String(product.id))}
+                  to={getProductDetailPath(product)}
                   className="searchbar__suggestion"
                   onMouseDown={(event) => event.preventDefault()}
                 >
