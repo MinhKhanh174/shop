@@ -22,6 +22,8 @@ const actionIcons = {
 export function HeaderTop({ isScrolled = false }) {
   const cartItems = useCartStore((state) => state.cartItems)
   const itemCount = useCartStore((state) => state.getItemCount())
+  const syncCartWithCatalog = useCartStore((state) => state.syncCartWithCatalog)
+  const removeFromCart = useCartStore((state) => state.removeFromCart)
   const remote = useHomeData()
   const location = useLocation()
   const isHomeRoute = location.pathname === ROUTES.HOME
@@ -69,11 +71,15 @@ export function HeaderTop({ isScrolled = false }) {
   }
 
   useEffect(() => {
+    if (Array.isArray(remote.products) && remote.products.length > 0) {
+      syncCartWithCatalog(remote.products)
+    }
+
     return () => {
       clearHeaderMenuTimer()
       clearCartPreviewTimer()
     }
-  }, [])
+  }, [remote.products, syncCartWithCatalog])
 
   const handleCatalogClick = () => {
     if (!isHomeRoute) {
@@ -194,6 +200,11 @@ export function HeaderTop({ isScrolled = false }) {
               aria-label="Giỏ hàng"
               onFocus={() => setIsCartPreviewOpen(true)}
               onBlur={() => setIsCartPreviewOpen(false)}
+              onClick={() => {
+                if (Array.isArray(remote.products) && remote.products.length > 0) {
+                  syncCartWithCatalog(remote.products)
+                }
+              }}
             >
               <div className="cart-icon-wrapper" aria-hidden="true">
                 <ShoppingCart size={18} />
@@ -211,6 +222,18 @@ export function HeaderTop({ isScrolled = false }) {
                         <div key={item.id} className="cart-preview__item">
                           <img src={item.image} alt={item.name} className="cart-preview__thumb" />
                           <div className="cart-preview__meta">
+                            <button
+                              type="button"
+                              className="cart-preview__remove"
+                              aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                removeFromCart(item.id)
+                              }}
+                            >
+                              ×
+                            </button>
                             <p>{item.name}</p>
                             <span>
                               {item.brand || ' '} {item.quantity ? `x ${item.quantity}` : ''}

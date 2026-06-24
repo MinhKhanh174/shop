@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, ChevronDown, LoaderCircle, User } from 'lucide-react'
+import { Banknote, ChevronDown, LoaderCircle, LogOut, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 import logoSrc from '../../assets/logo.webp'
 import { ROUTES } from '../../config/routes'
@@ -9,10 +9,12 @@ import { InternationalPhoneInput } from '../../components/phone/InternationalPho
 import { useCart } from '../../hooks/useCart'
 import { getDistrictsByProvinceCode, getProvinces, getWardsByDistrictCode } from '../../services/addressApi'
 import { formatCurrency } from '../../utils/currency'
+import { loadAddresses } from '../../utils/addressStorage'
 import { isValidEmail, isNonEmpty, requiredMessage } from '../../utils/formValidation'
 import { isValidE164PhoneNumber, normalizePhoneToE164 } from '../../utils/phoneValidation'
 import { useCartStore } from '../../store/useCartStore'
 import { saveOrder } from '../../services/orderApi'
+import { clearAuthSession, getAuthUser, hasAuthSession } from '../../utils/authStorage'
 import './CheckoutPage.css'
 
 const PAYMENT_OPTIONS = [
@@ -63,11 +65,137 @@ function filterAddressOptions(options, searchValue) {
   })
 }
 
+function buildCheckoutProfile(user) {
+  const address = user?.address ?? {}
+  const cityOrProvince = String(address.state ?? address.city ?? '').trim()
+  const line1 = String(address.address ?? '').trim()
+  const street = String(address.street ?? '').trim()
+  const city = String(address.city ?? '').trim()
+  const country = String(address.country ?? '').trim()
+
+  return {
+    email: String(user?.email ?? '').trim().toLowerCase(),
+    fullName: [user?.firstName, user?.lastName].map((value) => String(value ?? '').trim()).filter(Boolean).join(' ').trim(),
+    phone: String(user?.phone ?? '').trim(),
+    address: [line1, street].filter(Boolean).join(', ') || line1 || street,
+    provinceCode: String(address.stateCode ?? '').trim(),
+    provinceName: cityOrProvince,
+    districtCode: '',
+    districtName: city,
+    wardCode: '',
+    wardName: '',
+    note: '',
+    country,
+  }
+}
+
+function buildCheckoutProfileFromSavedAddress(address, user) {
+  const fallbackUser = buildCheckoutProfile(user)
+
+  if (!address || typeof address !== 'object') {
+    return INITIAL_FORM
+  }
+
+  return {
+    email: fallbackUser.email,
+    fullName: address.fullName || fallbackUser.fullName,
+    phone: address.phone || fallbackUser.phone,
+    address: address.address || fallbackUser.address,
+    provinceCode: String(address.provinceCode ?? '').trim(),
+    provinceName: String(address.provinceName ?? '').trim(),
+    districtCode: String(address.districtCode ?? '').trim(),
+    districtName: String(address.districtName ?? '').trim(),
+    wardCode: String(address.wardCode ?? '').trim(),
+    wardName: String(address.wardName ?? '').trim(),
+    note: '',
+  }
+}
+
+function buildAddressBookSummary(address) {
+  return [address?.fullName, address?.address, address?.wardName, address?.districtName, address?.provinceName, address?.countryName]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
+function AddressBookDropdown({
+  addresses = [],
+  selectedAddressId = 'manual',
+  isOpen = false,
+  onToggle,
+  onSelect,
+  containerRef,
+  hideLabel = false,
+}) {
+  const manualOption = {
+    id: 'manual',
+    name: 'Địa chỉ khác...',
+    summary: 'Cho phép sửa thủ công',
+  }
+
+  const addressOptions = addresses.map((address) => ({
+    id: address.id,
+    name: address.defaultAddress ? 'Địa chỉ mặc định' : address.fullName || 'Địa chỉ đã lưu',
+    summary: buildAddressBookSummary(address),
+    raw: address,
+  }))
+
+  const selectedOption =
+    selectedAddressId === 'manual'
+      ? manualOption
+      : addressOptions.find((option) => option.id === selectedAddressId) ?? addressOptions[0] ?? manualOption
+
+  const selectedLabel =
+    selectedOption?.id === 'manual' ? selectedOption?.name ?? 'Địa chỉ khác...' : selectedOption?.summary || selectedOption?.name
+
+  const visibleOptions = [manualOption, ...addressOptions]
+
+  return (
+    <div ref={containerRef} className="checkout-address-select">
+      <span className={hideLabel ? 'sr-only' : ''}>Sổ địa chỉ</span>
+      <button
+        type="button"
+        className="checkout-address-select__control"
+        onClick={onToggle}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="checkout-address-select__value">
+          {selectedLabel}
+        </span>
+        <ChevronDown size={16} className="checkout-address-select__chevron" aria-hidden="true" />
+      </button>
+
+      {isOpen ? (
+        <div className="checkout-address-select__menu checkout-recipient-select__menu" role="dialog" aria-label="Sổ địa chỉ">
+          <div className="checkout-address-select__options checkout-recipient-select__options" role="listbox">
+            {visibleOptions.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={`checkout-address-select__option checkout-recipient-select__option${
+                  option.id === selectedAddressId ? ' is-selected' : ''
+                }`}
+                onClick={() => onSelect(option)}
+                title={option.summary || option.name}
+              >
+                <span className="checkout-address-select__option-name">{option.name}</span>
+                {option.id === 'manual' ? null : <small>{option.summary}</small>}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function CheckoutField({
   label,
   placeholder,
   type = 'text',
   disabled = false,
+  readOnly = false,
   className = '',
   value = '',
   onChange,
@@ -81,6 +209,7 @@ function CheckoutField({
         type={type}
         placeholder={placeholder}
         disabled={disabled}
+        readOnly={readOnly}
         value={value}
         onChange={onChange}
         aria-invalid={error ? 'true' : 'false'}
@@ -303,15 +432,25 @@ function CheckoutSuccess({ order, onContinueShopping }) {
 export default function CheckoutPage() {
   const { cartItems } = useCart()
   const clearCart = useCartStore((state) => state.clearCart)
+  const [authUser, setAuthUser] = useState(() => getAuthUser())
+  const [savedAddresses, setSavedAddresses] = useState(() => (hasAuthSession() ? loadAddresses(getAuthUser()) : []))
   const [selectedPayment, setSelectedPayment] = useState(PAYMENT_OPTIONS[0].id)
   const [couponCode, setCouponCode] = useState('')
   const [appliedCouponCode, setAppliedCouponCode] = useState('')
   const [couponError, setCouponError] = useState('')
-  const [formValues, setFormValues] = useState(INITIAL_FORM)
+  const [formValues, setFormValues] = useState(() => (hasAuthSession() ? buildCheckoutProfile(getAuthUser()) : INITIAL_FORM))
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [placedOrder, setPlacedOrder] = useState(null)
+  const [selectedAddressId, setSelectedAddressId] = useState(() => {
+    if (!hasAuthSession()) {
+      return 'manual'
+    }
+
+    const currentAddresses = loadAddresses(getAuthUser())
+    return currentAddresses.find((address) => address.defaultAddress)?.id ?? currentAddresses[0]?.id ?? 'manual'
+  })
   const [provinceOptions, setProvinceOptions] = useState([])
   const [districtOptions, setDistrictOptions] = useState([])
   const [wardOptions, setWardOptions] = useState([])
@@ -332,7 +471,10 @@ export default function CheckoutPage() {
   const provinceSearchRef = useRef(null)
   const districtSearchRef = useRef(null)
   const wardSearchRef = useRef(null)
+  const addressBookDropdownRef = useRef(null)
   const hasCouponCode = couponCode.trim().length > 0
+  const isAuthenticated = Boolean(authUser && hasAuthSession())
+  const isManualAddressMode = !isAuthenticated || selectedAddressId === 'manual'
 
   const orderSubtotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0),
@@ -368,7 +510,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     function handlePointerDown(event) {
-      const activeRefs = [provinceDropdownRef, districtDropdownRef, wardDropdownRef]
+      const activeRefs = [addressBookDropdownRef, provinceDropdownRef, districtDropdownRef, wardDropdownRef]
       const clickedInside = activeRefs.some((ref) => ref.current && ref.current.contains(event.target))
 
       if (!clickedInside) {
@@ -382,6 +524,41 @@ export default function CheckoutPage() {
     return () => {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleAuthChanged = (event) => {
+      const nextUser = event?.detail ?? getAuthUser()
+      const nextIsAuthenticated = Boolean(nextUser && (nextUser.accessToken || nextUser.refreshToken || hasAuthSession()))
+
+      setAuthUser(nextUser)
+      setActiveDropdown(null)
+
+      if (nextIsAuthenticated) {
+        const nextAddresses = loadAddresses(nextUser)
+        const defaultAddress = nextAddresses.find((address) => address.defaultAddress) ?? nextAddresses[0] ?? null
+
+        setSavedAddresses(nextAddresses)
+        setSelectedAddressId(defaultAddress?.id ?? 'manual')
+        setFormValues((current) => ({
+          ...(defaultAddress ? buildCheckoutProfileFromSavedAddress(defaultAddress, nextUser) : INITIAL_FORM),
+          note: current.note ?? '',
+        }))
+        setFieldErrors({})
+        return
+      }
+
+      setSavedAddresses([])
+      setSelectedAddressId('manual')
+      setFormValues(INITIAL_FORM)
+      setFieldErrors({})
+    }
+
+    window.addEventListener('techstore:auth-changed', handleAuthChanged)
+
+    return () => {
+      window.removeEventListener('techstore:auth-changed', handleAuthChanged)
     }
   }, [])
 
@@ -693,19 +870,86 @@ export default function CheckoutPage() {
           <section className="checkout-page__main">
             <div className="checkout-page__section-head">
               <h2>Thông tin nhận hàng</h2>
-              <Link to={ROUTES.LOGIN} className="checkout-page__login-link">
-                <User size={18} />
-                <span>Đăng nhập</span>
-              </Link>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  className="checkout-page__logout-button"
+                  onClick={() => {
+                    clearAuthSession()
+                    setAuthUser(null)
+                    setSavedAddresses([])
+                    setSelectedAddressId('manual')
+                    setFormValues(INITIAL_FORM)
+                    setFieldErrors({})
+                    setActiveDropdown(null)
+                    toast.success('Đã đăng xuất')
+                  }}
+                >
+                  <LogOut size={18} />
+                  <span>Đăng xuất</span>
+                </button>
+              ) : (
+                <Link to={ROUTES.LOGIN} className="checkout-page__login-link">
+                  <User size={18} />
+                  <span>Đăng nhập</span>
+                </Link>
+              )}
             </div>
 
             <div className="checkout-page__form">
+              {isAuthenticated ? (
+                <AddressBookDropdown
+                  addresses={savedAddresses}
+                  selectedAddressId={selectedAddressId}
+                  isOpen={activeDropdown === 'address-book'}
+                  onToggle={() => {
+                    setActiveDropdown((current) => (current === 'address-book' ? null : 'address-book'))
+                  }}
+                  onSelect={(option) => {
+                    setSelectedAddressId(option.id)
+
+                    if (option.id !== 'manual') {
+                      const selectedSavedAddress = savedAddresses.find((address) => address.id === option.id)
+
+                      setFormValues((current) => ({
+                        ...(selectedSavedAddress
+                          ? buildCheckoutProfileFromSavedAddress(selectedSavedAddress, authUser)
+                          : INITIAL_FORM),
+                        note: current.note ?? '',
+                      }))
+                      setProvinceSearch('')
+                      setDistrictSearch('')
+                      setWardSearch('')
+                      setDistrictOptions([])
+                      setWardOptions([])
+                      setFieldErrors({})
+                    } else {
+                      setFormValues(INITIAL_FORM)
+                      setProvinceSearch('')
+                      setDistrictSearch('')
+                      setWardSearch('')
+                      setProvinceOptions([])
+                      setDistrictOptions([])
+                      setWardOptions([])
+                      setProvinceFetchError('')
+                      setDistrictFetchError('')
+                      setWardFetchError('')
+                      setFieldErrors({})
+                    }
+                    setActiveDropdown(null)
+                  }}
+                  containerRef={addressBookDropdownRef}
+                  hideLabel
+                />
+              ) : null}
+
               <CheckoutField
                 label="Email"
                 placeholder="Email"
                 type="email"
                 hideLabel
                 value={formValues.email}
+                readOnly={isAuthenticated && !isManualAddressMode}
                 onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
                 error={fieldErrors.email}
               />
@@ -715,6 +959,7 @@ export default function CheckoutPage() {
                 placeholder="Họ và tên"
                 hideLabel
                 value={formValues.fullName}
+                readOnly={isAuthenticated && !isManualAddressMode}
                 onChange={(event) => setFormValues((current) => ({ ...current, fullName: event.target.value }))}
                 error={fieldErrors.fullName}
               />
@@ -725,6 +970,7 @@ export default function CheckoutPage() {
                   id="checkout-phone"
                   variant="checkout"
                   value={formValues.phone}
+                  readOnly={isAuthenticated && !isManualAddressMode}
                   onChange={(nextPhone) =>
                     setFormValues((current) => ({
                       ...current,
@@ -741,6 +987,7 @@ export default function CheckoutPage() {
                 placeholder="Địa chỉ"
                 hideLabel
                 value={formValues.address}
+                readOnly={isAuthenticated && !isManualAddressMode}
                 onChange={(event) => setFormValues((current) => ({ ...current, address: event.target.value }))}
                 error={fieldErrors.address}
               />
@@ -751,6 +998,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={provinceDisplayLabel}
                 error={fieldErrors.provinceCode}
+                disabled={isAuthenticated && !isManualAddressMode}
                 isOpen={activeDropdown === 'province'}
                 loading={provinceLoading}
                 fetchError={provinceFetchError}
@@ -775,7 +1023,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={districtDisplayLabel}
                 error={fieldErrors.districtCode}
-                disabled={!formValues.provinceCode}
+                disabled={!formValues.provinceCode || (isAuthenticated && !isManualAddressMode)}
                 isOpen={activeDropdown === 'district'}
                 loading={districtLoading}
                 fetchError={districtFetchError}
@@ -800,7 +1048,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={wardDisplayLabel}
                 error={fieldErrors.wardCode}
-                disabled={!formValues.districtCode}
+                disabled={!formValues.districtCode || (isAuthenticated && !isManualAddressMode)}
                 isOpen={activeDropdown === 'ward'}
                 loading={wardLoading}
                 fetchError={wardFetchError}

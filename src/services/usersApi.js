@@ -34,6 +34,8 @@ function mapRemoteUser(user) {
     phone: String(user.phone ?? '').trim(),
     email: normalizeEmail(user.email),
     avatar: String(user.image ?? user.avatar ?? '').trim(),
+    company: user.company ? { ...user.company } : null,
+    address: user.address ? { ...user.address } : null,
     accessToken: String(user.accessToken ?? '').trim(),
     refreshToken: String(user.refreshToken ?? '').trim(),
     raw: user,
@@ -139,7 +141,7 @@ export async function getCurrentUser(accessToken) {
     return null
   }
 
-  const data = await request('/user/me', {
+  const data = await request('/auth/me', {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -149,4 +151,3 @@ export async function getCurrentUser(accessToken) {
 
   return mapRemoteUser(data)
 }
-

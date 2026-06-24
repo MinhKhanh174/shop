@@ -18,6 +18,7 @@ export function InternationalPhoneInput({
   value = '',
   onChange,
   disabled = false,
+  readOnly = false,
   placeholder = 'Số điện thoại',
   className = '',
   inputClassName = '',
@@ -32,6 +33,7 @@ export function InternationalPhoneInput({
   const rootRef = useRef(null)
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const isLocked = disabled || readOnly
 
   const { inputValue, country, setCountry, handlePhoneValueChange, inputRef } = usePhoneInput({
     defaultCountry: DEFAULT_COUNTRY,
@@ -94,7 +96,7 @@ export function InternationalPhoneInput({
   }, [])
 
   const toggleMenu = () => {
-    if (disabled) {
+    if (isLocked) {
       return
     }
 
@@ -119,7 +121,7 @@ export function InternationalPhoneInput({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={toggleMenu}
-        disabled={disabled}
+        disabled={isLocked}
       >
         <span className="phone-input__flag" aria-hidden="true">
           <FlagImage iso2={selectedCountry.iso2} size={18} />
@@ -141,6 +143,7 @@ export function InternationalPhoneInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
+        readOnly={readOnly}
         aria-invalid={error ? 'true' : 'false'}
       />
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { BarChart3, Search, ShoppingCart } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { BarChart3, Heart, Search, ShoppingCart } from 'lucide-react'
 import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
 import { getProductDetailPath } from '../../utils/productRoutes'
@@ -8,6 +8,10 @@ import { AddToCartButton } from '../../shared/ui/AddToCartButton'
 import { AddToCartSuccessModal } from '../../shared/ui/AddToCartSuccessModal'
 import { ProductQuickViewModal } from '../../shared/ui/ProductQuickViewModal'
 import { useCompareActions } from '../../hooks/useCompareActions'
+import { ROUTES } from '../../config/routes'
+import { hasAuthSession } from '../../utils/authStorage'
+import { queuePendingWishlistProduct } from '../../services/wishlistService'
+import { useWishlistStore } from '../../store/useWishlistStore'
 
 function buildTimeParts(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds)
@@ -49,6 +53,9 @@ function FlashSaleCard({ product }) {
   const [successPayload, setSuccessPayload] = useState(null)
   const { addToCompareAndNotify } = useCompareActions()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isFavorite = useWishlistStore((state) => state.wishlistItems.some((item) => String(item.id) === String(product.id)))
+  const toggleFavorite = useWishlistStore((state) => state.toggleFavorite)
   const detailPath = getProductDetailPath(product)
 
   const handleCardClick = () => {
@@ -57,6 +64,22 @@ function FlashSaleCard({ product }) {
 
   const stopCardClick = (event) => {
     event.stopPropagation()
+  }
+
+  const handleFavoriteClick = (event) => {
+    stopCardClick(event)
+
+    if (!hasAuthSession()) {
+      queuePendingWishlistProduct(product)
+      navigate(ROUTES.LOGIN, {
+        state: {
+          from: `${location.pathname}${location.search}`,
+        },
+      })
+      return
+    }
+
+    toggleFavorite(product)
   }
 
   return (
@@ -125,21 +148,33 @@ function FlashSaleCard({ product }) {
         <div className="flash-sale-card__price-row">
           <span className="flash-sale-card__price">{formatCurrency(product.price)}</span>
 
-          {product.soldOut ? (
-            <button type="button" className="flash-sale-card__sold-out" disabled>
-              Hết hàng
+          <div className="flash-sale-card__actions">
+            <button
+              type="button"
+              className={`flash-sale-card__wishlist${isFavorite ? ' is-active' : ''}`}
+              onClick={handleFavoriteClick}
+              aria-label={isFavorite ? `Bỏ yêu thích ${product.name}` : `Yêu thích ${product.name}`}
+              aria-pressed={isFavorite}
+            >
+              <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
-          ) : (
-            <AddToCartButton
-              className="flash-sale-card__action"
-              icon={ShoppingCart}
-              ariaLabel="Xem nhanh sản phẩm"
-              onClick={(event) => {
-                event.stopPropagation()
-                setIsQuickViewOpen(true)
-              }}
-            />
-          )}
+
+            {product.soldOut ? (
+              <button type="button" className="flash-sale-card__sold-out" disabled>
+                Hết hàng
+              </button>
+            ) : (
+              <AddToCartButton
+                className="flash-sale-card__action"
+                icon={ShoppingCart}
+                ariaLabel="Xem nhanh sản phẩm"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setIsQuickViewOpen(true)
+                }}
+              />
+            )}
+          </div>
         </div>
 
         <div className={`flash-sale-card__status flash-sale-card__status--${product.statusTone ?? 'soft'}`}>

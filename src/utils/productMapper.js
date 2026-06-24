@@ -70,7 +70,7 @@ function formatMoney(value) {
     return 0
   }
 
-  return value < 1000 ? Math.round(value * 25000) : Math.round(value)
+  return Math.round(value * 25000)
 }
 
 export function mapApiProductToCard(product, overrides = {}) {

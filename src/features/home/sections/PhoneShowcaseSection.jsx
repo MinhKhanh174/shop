@@ -75,7 +75,6 @@ export function PhoneShowcaseSection({ remoteProducts, bannerAssets = {} }) {
       .slice(0, 8)
   }, [remoteProducts, selectedBrand])
 
-  // Get all unique brands from products that have smartphones and have data in phoneBannerCopy
   const brands = useMemo(() => {
     const uniqueBrands = new Set()
     remoteProducts.forEach((product) => {
@@ -101,16 +100,18 @@ export function PhoneShowcaseSection({ remoteProducts, bannerAssets = {} }) {
     showcasePhones[1]?.image ??
     null
 
-  // Build promo tiles from API products
   const productsWithImages = remoteProducts.filter((product) => product?.thumbnail || product?.images?.[0])
   const promoProducts = productsWithImages.slice(3, 6)
 
-  const promoTiles = promoProducts.map((product, index) => ({
-    title: product.title || '',
-    discount: product.discountPercentage ? `GIẢM ${product.discountPercentage}%` : '',
-    cta: 'MUA NGAY',
-    tone: ['blue', 'cyan', 'navy'][index % 3],
-    image: product.thumbnail || product.images?.[0] || null,
+  const promoTiles = mapProductsToCards(promoProducts, {
+    type: 'phone',
+    label: 'MUA NGAY',
+  }).map((product, index) => ({
+    ...product,
+    promoTitle: product.name,
+    promoDiscount: product.badge ?? product.label ?? '',
+    promoCta: 'MUA NGAY',
+    promoTone: ['blue', 'cyan', 'navy'][index % 3],
   }))
 
   return (
@@ -191,21 +192,7 @@ export function PhoneShowcaseSection({ remoteProducts, bannerAssets = {} }) {
 
       <div className="phone-showcase__promo-row">
         {promoTiles.map((tile) => (
-          <article key={tile.title} className={`phone-showcase__promo phone-showcase__promo--${tile.tone}`}>
-            <div className="phone-showcase__promo-copy">
-              <h4>{tile.title}</h4>
-              <strong>{tile.discount}</strong>
-              <span>{tile.cta}</span>
-            </div>
-
-            {tile.image ? (
-              <img className="phone-showcase__promo-image" src={tile.image} alt={tile.title} loading="lazy" />
-            ) : (
-              <div className="phone-showcase__promo-placeholder" />
-            )}
-
-            <div className="phone-showcase__promo-glow" aria-hidden="true" />
-          </article>
+          <ProductCard key={tile.id} product={tile} variant="promo" />
         ))}
       </div>
     </section>

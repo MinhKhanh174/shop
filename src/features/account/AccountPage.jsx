@@ -5,10 +5,32 @@ import { ROUTES } from '../../config/routes'
 import { buildDisplayName, getAuthUser, hasAuthSession } from '../../utils/authStorage'
 import { loadAddresses } from '../../utils/addressStorage'
 
+function formatAccountAddress(address) {
+  const lineParts = [
+    address?.address,
+    address?.wardName,
+    address?.districtName,
+    address?.provinceName,
+    address?.countryName,
+  ]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+
+  if (lineParts.length) {
+    return lineParts.join(', ')
+  }
+
+  return 'Chưa có địa chỉ'
+}
+
 export default function AccountPage() {
   const isAuthenticated = hasAuthSession()
   const currentUser = getAuthUser()
-  const addressCount = loadAddresses(currentUser).length
+  const savedAddresses = loadAddresses(currentUser)
+  const addressCount = savedAddresses.length
+  const primaryAddress = savedAddresses.find((address) => address.defaultAddress) ?? savedAddresses[0] ?? null
+  const companyName = String(currentUser?.company?.name ?? primaryAddress?.company ?? '').trim()
+  const addressText = formatAccountAddress(primaryAddress)
 
   return (
     <div className="account-page">
@@ -33,12 +55,18 @@ export default function AccountPage() {
                   <span className="account-page__profile-label">Email:</span>
                   <span className="account-page__profile-value">{currentUser?.email || 'Chưa có email'}</span>
                 </div>
-                {currentUser?.phone ? (
-                  <div className="account-page__profile-row">
-                    <span className="account-page__profile-label">Số điện thoại:</span>
-                    <span className="account-page__profile-value">{currentUser.phone}</span>
-                  </div>
-                ) : null}
+                <div className="account-page__profile-row">
+                  <span className="account-page__profile-label">Số điện thoại:</span>
+                  <span className="account-page__profile-value">{currentUser?.phone || 'Chưa có số điện thoại'}</span>
+                </div>
+                <div className="account-page__profile-row">
+                  <span className="account-page__profile-label">Công ty:</span>
+                  <span className="account-page__profile-value">{companyName || 'Chưa có công ty'}</span>
+                </div>
+                <div className="account-page__profile-row">
+                  <span className="account-page__profile-label">Địa chỉ:</span>
+                  <span className="account-page__profile-value">{addressText}</span>
+                </div>
               </div>
             ) : (
               <div className="account-page__notice">

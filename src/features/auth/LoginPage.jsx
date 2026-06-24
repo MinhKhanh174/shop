@@ -90,12 +90,10 @@ export default function LoginPage() {
 
           authenticatedUser = registeredAccount
         } else {
-          authenticatedUser = {
-            firstName: '',
-            lastName: '',
-            phone: '',
-            email: normalizedEmail,
-          }
+          setErrors({
+            password: 'Email hoặc mật khẩu không đúng.',
+          })
+          return
         }
       }
 

@@ -1,19 +1,37 @@
-import { fetchProductById, fetchProducts, searchProducts } from './homeApi.js'
+import { fetchProductById, fetchProducts, fetchProductsByCategory, searchProducts } from './homeApi.js'
 import { formatCurrency } from '../utils/currency.js'
 
 const PRODUCT_SELECT =
-  'id,title,sku,price,discountPercentage,brand,category,thumbnail,images,stock,rating,description'
+  'id,title,sku,price,discountPercentage,brand,category,thumbnail,images,stock,rating,description,dimensions,weight,warrantyInformation,shippingInformation,returnPolicy,minimumOrderQuantity,availabilityStatus'
 
 function normalizePrice(value) {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return 0
   }
 
-  return value < 1000 ? Math.round(value * 25000) : Math.round(value)
+  return Math.round(value * 25000)
+}
+
+function formatMetric(value, unit = '') {
+  if (value === null || value === undefined || value === '') {
+    return 'Đang cập nhật'
+  }
+
+  const numericValue = Number(value)
+  if (Number.isFinite(numericValue)) {
+    return `${numericValue}${unit}`
+  }
+
+  return String(value)
 }
 
 function mapApiProduct(product) {
   const price = normalizePrice(product.price)
+  const dimensions = product.dimensions ?? {}
+  const width = formatMetric(dimensions.width, ' cm')
+  const height = formatMetric(dimensions.height, ' cm')
+  const depth = formatMetric(dimensions.depth, ' cm')
+  const weight = formatMetric(product.weight, ' kg')
 
   return {
     id: product.id,
@@ -28,10 +46,12 @@ function mapApiProduct(product) {
         ? `Giảm ${Math.round(product.discountPercentage)}% khi mua online`
         : 'Ưu đãi đặc biệt khi mua online',
     specs: {
-      'Màn hình': product.category === 'headphones' ? 'Không áp dụng' : 'Liên hệ để biết thêm',
-      Pin: typeof product.stock === 'number' ? `Còn ${product.stock} sản phẩm` : 'Đang cập nhật',
-      Camera: product.rating ? `Đánh giá ${product.rating}/5` : 'Đang cập nhật',
       'Danh mục': product.category ?? 'Đang cập nhật',
+      'Chiều rộng': width,
+      'Chiều cao': height,
+      'Chiều sâu': depth,
+      'Cân nặng': weight,
+      'Tình trạng': product.availabilityStatus ?? 'Đang cập nhật',
     },
     priceText: formatCurrency(price),
     source: product,
@@ -58,6 +78,13 @@ export async function getProducts() {
 
 export async function searchCatalogProducts(query) {
   const response = await searchProducts(query)
+  const results = Array.isArray(response.data?.products) ? response.data.products : []
+
+  return results.map(mapApiProduct)
+}
+
+export async function getProductsByCategory(categorySlug) {
+  const response = await fetchProductsByCategory(categorySlug, { select: PRODUCT_SELECT })
   const results = Array.isArray(response.data?.products) ? response.data.products : []
 
   return results.map(mapApiProduct)

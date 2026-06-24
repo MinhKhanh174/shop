@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { calculateCartTotals, loadCart, saveCart, syncCartFromRemote } from '../services/cartService'
+import { calculateCartTotals, loadCart, saveCart, syncCartFromRemote, syncCartItemsWithCatalog } from '../services/cartService'
 import { formatCurrency } from '../utils/currency'
 import { getAuthUser } from '../utils/authStorage'
 import { clampQuantity, resolveMaxQuantity } from '../utils/quantity'
@@ -12,11 +12,12 @@ function normalizePrice(value) {
     return 0
   }
 
-  return value < 1000 ? Math.round(value * 25000) : Math.round(value)
+  return Math.round(value * 25000)
 }
 
 export function normalizeCartProduct(product) {
-  const price = normalizePrice(product.price)
+  const alreadyConverted = Boolean(product?.priceText || product?.source?.priceText)
+  const price = alreadyConverted ? Math.round(Number(product.price) || 0) : normalizePrice(product.price)
   const name = product.name ?? product.title ?? 'Sản phẩm'
   const stock = resolveMaxQuantity(product.stock ?? product.source?.stock)
 
@@ -85,6 +86,16 @@ export const useCartStore = create((set, get) => ({
     const currentUser = getAuthUser()
     saveCart([], currentUser)
     set({ cartItems: [] })
+  },
+
+  syncCartWithCatalog: (catalogProducts = []) => {
+    const currentUser = getAuthUser()
+
+    set((state) => {
+      const nextItems = syncCartItemsWithCatalog(state.cartItems, catalogProducts)
+      saveCart(nextItems, currentUser)
+      return { cartItems: nextItems }
+    })
   },
 
   updateQuantity: (id, quantity) => {

@@ -84,6 +84,28 @@
   margin-left: auto;
 }
 
+.checkout-page__logout-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1d9ad7;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+  margin-left: auto;
+  cursor: pointer;
+  padding: 0;
+}
+
+.checkout-page__logout-button:hover,
+.checkout-page__login-link:hover {
+  color: #1572a3;
+}
+
 .checkout-page__form {
   display: grid;
   gap: 8px;
@@ -206,6 +228,13 @@
   outline: none;
 }
 
+.checkout-field input[readonly],
+.checkout-note textarea[readonly],
+.checkout-phone__input input[readonly] {
+  background: #fff;
+  color: #202124;
+}
+
 .checkout-address-select__value {
   min-width: 0;
   overflow: hidden;
@@ -298,6 +327,22 @@
   cursor: pointer;
 }
 
+.checkout-recipient-select__option {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 4px;
+}
+
+.checkout-recipient-select__option small {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.checkout-recipient-select__option.is-selected {
+  background: #f3f7ff;
+}
+
 .checkout-address-select__option:hover {
   background: #f3f7ff;
 }
@@ -325,6 +370,10 @@
   flex-direction: column;
   gap: 10px;
   color: #b91c1c;
+}
+
+.checkout-recipient-select__menu {
+  width: min(100%, 390px);
 }
 
 .checkout-address-select__spinner {

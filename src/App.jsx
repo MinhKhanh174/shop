@@ -8,10 +8,12 @@ import { CompareTray } from './shared/ui/CompareTray'
 import { QuickContactButtons } from './shared/ui/QuickContactButtons'
 import { HomeDataProvider } from './context/HomeDataProvider'
 import { ROUTES } from './config/routes'
-import { hasAuthSession } from './utils/authStorage'
+import { clearAuthSession, getAuthToken, getAuthUser, hasAuthSession, isRemoteAuthToken, setAuthSession } from './utils/authStorage'
 import { useRouteCategorySync } from './hooks/useRouteCategorySync'
 import { useScrollShadow } from './hooks/useScrollShadow'
 import { getCategoryCollectionPath } from './utils/categoryRoutes'
+import { getCurrentUser } from './services/usersApi'
+import './store/useWishlistStore'
 import './App.css'
 
 const HomePage = lazy(() => import('./features/home/HomePage'))
@@ -34,6 +36,7 @@ const AccountPage = lazy(() => import('./features/account/AccountPage'))
 const AccountPasswordPage = lazy(() => import('./features/account/AccountPasswordPage'))
 const AccountAddressPage = lazy(() => import('./features/account/AccountAddressPage'))
 const AccountOrdersPage = lazy(() => import('./features/account/AccountOrdersPage'))
+const AccountWishlistPage = lazy(() => import('./features/account/AccountWishlistPage'))
 const OrderDetailPage = lazy(() => import('./features/account/OrderDetailPage'))
 const NotFoundPage = lazy(() => import('./shared/ui/NotFoundPage'))
 
@@ -94,8 +97,21 @@ function AppShell() {
   const location = useLocation()
   const isScrolled = useScrollShadow()
   const isCheckoutRoute = location.pathname === ROUTES.CHECKOUT
+  const [, forceAuthRefresh] = useState(0)
   const headerRef = useRef(null)
   const [headerHeight, setHeaderHeight] = useState(0)
+
+  useEffect(() => {
+    const handleAuthChanged = () => {
+      forceAuthRefresh((current) => current + 1)
+    }
+
+    window.addEventListener('techstore:auth-changed', handleAuthChanged)
+
+    return () => {
+      window.removeEventListener('techstore:auth-changed', handleAuthChanged)
+    }
+  }, [])
 
   useLayoutEffect(() => {
     const headerEl = headerRef.current
@@ -121,6 +137,40 @@ function AppShell() {
 
     return () => {
       observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    const storedUser = getAuthUser()
+    const authToken = getAuthToken()
+
+    if (!storedUser || !authToken || !isRemoteAuthToken(authToken)) {
+      return undefined
+    }
+
+    let active = true
+
+    getCurrentUser(authToken)
+      .then((currentUser) => {
+        if (!active || !currentUser) {
+          return
+        }
+
+        setAuthSession(currentUser, {
+          accessToken: authToken,
+          refreshToken: storedUser.refreshToken ?? '',
+        })
+      })
+      .catch((error) => {
+        const status = error?.response?.status
+
+        if (status === 401 || status === 403) {
+          clearAuthSession()
+        }
+      })
+
+    return () => {
+      active = false
     }
   }, [])
 
@@ -221,11 +271,20 @@ function AppShell() {
                     </RequireAuth>
                   }
                 />
+                <Route
+                  path={ROUTES.ACCOUNT_WISHLIST}
+                  element={
+                    <RequireAuth>
+                      <AccountWishlistPage />
+                    </RequireAuth>
+                  }
+                />
                 <Route path={ROUTES.ACCOUNT_LEGACY} element={<Navigate to={ROUTES.ACCOUNT} replace />} />
                 <Route path={ROUTES.ACCOUNT_PASSWORD_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_PASSWORD} replace />} />
                 <Route path={ROUTES.ACCOUNT_ADDRESS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ADDRESS} replace />} />
                 <Route path={ROUTES.ACCOUNT_ORDERS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDERS} replace />} />
                 <Route path={ROUTES.ACCOUNT_ORDER_DETAIL_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDER_DETAIL} replace />} />
+                <Route path={ROUTES.ACCOUNT_WISHLIST_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_WISHLIST} replace />} />
                 <Route path={ROUTES.LOGIN} element={<LoginPage />} />
                 <Route path={ROUTES.LOGIN_LEGACY} element={<Navigate to={ROUTES.LOGIN} replace />} />
                 <Route path={ROUTES.REGISTER} element={<RegisterPage />} />

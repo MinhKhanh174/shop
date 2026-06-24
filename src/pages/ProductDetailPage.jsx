@@ -10,6 +10,7 @@ import {
   RotateCcw,
   ShoppingCart,
   BarChart3,
+  Heart,
   Gift,
   BadgePercent,
 } from 'lucide-react'
@@ -24,8 +25,11 @@ import { mapProductsToCards } from '../utils/productMapper'
 import { getViewedProducts, saveViewedProductId } from '../utils/viewedProducts'
 import { getCategoryCollectionPath } from '../utils/categoryRoutes'
 import { buildBlogArticlePath, getRelatedBlogArticleForProduct } from '../utils/blogArticles'
+import { hasAuthSession } from '../utils/authStorage'
+import { queuePendingWishlistProduct } from '../services/wishlistService'
+import { getProductsByCategory } from '../services/productService'
+import { useWishlistStore } from '../store/useWishlistStore'
 import { ProductRail } from '../shared/ui/ProductRail'
-import { CopyCodeButton } from '../shared/ui/CopyCodeButton'
 import { useProductDetail } from '../features/product/hooks/useProductDetail'
 import { coupons } from '../data/siteConfig'
 import {
@@ -49,11 +53,14 @@ function ProductDetailContent({ productId }) {
   const { addToCart } = useCart()
   const { addToCompareAndNotify } = useCompareActions()
   const { handleAddToCart: submitAddToCart, successModal } = useAddToCartSuccessFlow()
+  const isFavorite = useWishlistStore((state) => state.wishlistItems.some((item) => String(item.id) === String(productId)))
+  const toggleFavorite = useWishlistStore((state) => state.toggleFavorite)
   const [quantity, setQuantity] = useState(1)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [selectedColorIndex, setSelectedColorIndex] = useState(0)
   const [selectedStorageIndex, setSelectedStorageIndex] = useState(0)
   const [isSpecsOpen, setIsSpecsOpen] = useState(false)
+  const [relatedSourceProducts, setRelatedSourceProducts] = useState([])
   const maxQuantity = Number.isFinite(Number(product?.source?.stock)) ? Math.max(1, Number(product.source.stock)) : null
 
   useEffect(() => {
@@ -62,10 +69,40 @@ function ProductDetailContent({ productId }) {
     }
   }, [product])
 
+  useEffect(() => {
+    let active = true
+    const categorySlug = String(product?.source?.category ?? '').trim()
+
+    if (!categorySlug) {
+      return () => {
+        active = false
+      }
+    }
+
+    getProductsByCategory(categorySlug)
+      .then((results) => {
+        if (active) {
+          setRelatedSourceProducts(Array.isArray(results) ? results : [])
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRelatedSourceProducts([])
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [product?.source?.category])
+
   const galleryImages = useMemo(() => resolveGalleryImages(product), [product])
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0]
   const catalogProducts = useMemo(() => mapProductsToCards(remoteProducts, { label: 'Trả góp 0%' }), [remoteProducts])
-  const relatedProducts = useMemo(() => buildRelatedProducts(remoteProducts, product), [remoteProducts, product])
+  const relatedProducts = useMemo(
+    () => buildRelatedProducts(relatedSourceProducts.length > 0 ? relatedSourceProducts : remoteProducts, product),
+    [relatedSourceProducts, remoteProducts, product],
+  )
   const viewedProducts = useMemo(() => getViewedProducts(catalogProducts, 4), [catalogProducts])
   const samePriceProducts = useMemo(() => {
     if (!product) return []
@@ -152,7 +189,7 @@ function ProductDetailContent({ productId }) {
 
   const handleBuyNow = () => {
     addToCart(product, quantity)
-    navigate(ROUTES.CART)
+    navigate(ROUTES.CHECKOUT)
   }
 
   const handleAddToCart = () => {
@@ -163,10 +200,26 @@ function ProductDetailContent({ productId }) {
     addToCompareAndNotify(product)
   }
 
+  const handleFavoriteClick = () => {
+    if (!hasAuthSession()) {
+      queuePendingWishlistProduct(product)
+      navigate(ROUTES.LOGIN, {
+        state: {
+          from: `${location.pathname}${location.search}`,
+        },
+      })
+      return
+    }
+
+    toggleFavorite(product)
+  }
+
   const promoLines = [
-    { text: 'Nhập mã EGANY thêm 5% đơn hàng ', copyLabel: 'Sao chép', copyValue: 'EGANY' },
-    'Giảm giá 10% khi mua từ 5 sản phẩm',
-    'Tặng phiếu mua hàng khi mua từ 500K',
+    discountPercentage > 0
+      ? `Giảm giá đến ${Math.round(discountPercentage)}%`
+      : 'Giá đang theo dữ liệu API sản phẩm',
+    `Đổi trả trong vòng 30 ngày`,
+    `Bảo hành ${product?.source?.warrantyInformation ?? '1 tháng'}`,
   ]
 
   const specsEntries = Object.entries(product.specs ?? {})
@@ -262,10 +315,23 @@ function ProductDetailContent({ productId }) {
                     <span className={`pd-info__value${isDellProductCode ? ' pd-info__value--accent-blue' : ''}`}>{productCode}</span>
                   </span>
                 </div>
-                <button type="button" className="pd-info__compare" onClick={handleAddToCompare}>
-                  <BarChart3 size={15} />
-                  <span>So sánh</span>
-                </button>
+                <div className="pd-info__actions">
+                  <button type="button" className="pd-info__compare pd-info__action" onClick={handleAddToCompare}>
+                    <BarChart3 size={15} />
+                    <span>So sánh</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`pd-info__favorite pd-info__action${isFavorite ? ' is-active' : ''}`}
+                    onClick={handleFavoriteClick}
+                    aria-pressed={isFavorite}
+                    aria-label={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+                  >
+                    <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
+                    <span>Yêu thích</span>
+                  </button>
+                </div>
               </div>
 
               <div className="pd-price-box">
@@ -289,18 +355,7 @@ function ProductDetailContent({ productId }) {
                   </div>
                   <ul className="pd-info__promo-list">
                     {promoLines.map((line) => (
-                      <li key={typeof line === 'string' ? line : line.text}>
-                        {typeof line === 'string' ? (
-                          line
-                        ) : (
-                          <>
-                            <span>{line.text}</span>
-                            <CopyCodeButton value={line.copyValue} className="pd-promo-copy">
-                              {line.copyLabel}
-                            </CopyCodeButton>
-                          </>
-                        )}
-                      </li>
+                      <li key={line}>{line}</li>
                     ))}
                   </ul>
                 </div>
@@ -420,21 +475,21 @@ function ProductDetailContent({ productId }) {
 
         <section className="pd-lower">
           <article className="pd-card pd-card--feature">
-            <h2>ĐẶC ĐIỂM NỔI BẬT</h2>
+            <h2>Đặc điểm nổi bật</h2>
             <div className="pd-card__body">
-              <p>{relatedArticle?.summary ?? product.description}</p>
+              <p>{product.description ?? relatedArticle?.summary ?? 'Đang cập nhật mô tả từ API sản phẩm.'}</p>
 
               {relatedArticle?.sections?.[0] ? (
                 <>
                   <h3>{relatedArticle.sections[0].heading}</h3>
-                  <p>{relatedArticle.sections[0].paragraphs?.[0] ?? product.description}</p>
+                  <p>{product.description ?? relatedArticle.sections[0].paragraphs?.[0] ?? 'Đang cập nhật mô tả từ API sản phẩm.'}</p>
                 </>
               ) : null}
 
               {relatedArticle?.sections?.[1] ? (
                 <>
                   <h3>{relatedArticle.sections[1].heading}</h3>
-                  <p>{relatedArticle.sections[1].paragraphs?.[0] ?? product.description}</p>
+                  <p>{product.description ?? relatedArticle.sections[1].paragraphs?.[0] ?? 'Đang cập nhật mô tả từ API sản phẩm.'}</p>
                 </>
               ) : null}
             </div>
@@ -445,7 +500,7 @@ function ProductDetailContent({ productId }) {
           </article>
 
           <article className="pd-card pd-card--spec">
-            <h2>THÔNG SỐ KỸ THUẬT</h2>
+            <h2>Thông số kỹ thuật</h2>
             <div className="pd-specs">
               {specsEntries.map(([label, value]) => (
                 <div key={label} className="pd-specs__row">

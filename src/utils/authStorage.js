@@ -64,6 +64,27 @@ export function getAuthUser() {
   return readJson(AUTH_USER_KEY, null)
 }
 
+export function getAuthToken() {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const storedUser = getAuthUser()
+  const storedToken = String(window.localStorage.getItem(AUTH_TOKEN_KEY) ?? '').trim()
+
+  return String(storedUser?.accessToken ?? storedUser?.refreshToken ?? storedToken ?? '').trim()
+}
+
+export function isRemoteAuthToken(token) {
+  const normalizedToken = String(token ?? '').trim()
+
+  if (!normalizedToken) {
+    return false
+  }
+
+  return normalizedToken.includes('.') && !normalizedToken.startsWith('techstore_')
+}
+
 export function hasAuthSession() {
   const storedUser = getAuthUser()
 
@@ -84,6 +105,8 @@ export function setAuthSession(user, tokens = {}) {
     phone: String(user?.phone ?? '').trim(),
     email: String(user?.email ?? '').trim().toLowerCase(),
     avatar: String(user?.avatar ?? user?.image ?? '').trim(),
+    company: user?.company ? { ...user.company } : null,
+    address: user?.address ? { ...user.address } : null,
     accessToken: String(tokens?.accessToken ?? user?.accessToken ?? '').trim(),
     refreshToken: String(tokens?.refreshToken ?? user?.refreshToken ?? '').trim(),
   }

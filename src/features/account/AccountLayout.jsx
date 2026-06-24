@@ -6,6 +6,7 @@ function buildMenuItems(addressCount) {
   return [
     { key: 'info', label: 'Thông tin tài khoản', to: ROUTES.ACCOUNT },
     { key: 'orders', label: 'Đơn hàng của bạn', to: ROUTES.ACCOUNT_ORDERS },
+    { key: 'wishlist', label: 'Yêu thích', to: ROUTES.ACCOUNT_WISHLIST },
     { key: 'password', label: 'Đổi mật khẩu', to: ROUTES.ACCOUNT_PASSWORD },
     { key: 'address', label: `Sổ địa chỉ (${addressCount})`, to: ROUTES.ACCOUNT_ADDRESS },
   ]
@@ -27,6 +28,10 @@ export default function AccountLayout({ activeMenu = 'info', user, addressCount 
 
     if (item.to === ROUTES.ACCOUNT_ORDERS && location.pathname.startsWith(ROUTES.ACCOUNT_ORDERS)) {
       return item.key === 'orders'
+    }
+
+    if (item.to === ROUTES.ACCOUNT_WISHLIST && location.pathname === ROUTES.ACCOUNT_WISHLIST) {
+      return item.key === 'wishlist'
     }
 
     if (item.to === ROUTES.ACCOUNT_PASSWORD && location.pathname === ROUTES.ACCOUNT_PASSWORD) {

@@ -17,11 +17,13 @@ export const ROUTES = {
   ACCOUNT: '/tai-khoan',
   ACCOUNT_ORDERS: '/tai-khoan/don-hang',
   ACCOUNT_ORDER_DETAIL: '/tai-khoan/don-hang/:orderId',
+  ACCOUNT_WISHLIST: '/tai-khoan/yeu-thich',
   ACCOUNT_PASSWORD: '/tai-khoan/doi-mat-khau',
   ACCOUNT_ADDRESS: '/tai-khoan/so-dia-chi',
   ACCOUNT_LEGACY: '/account',
   ACCOUNT_ORDERS_LEGACY: '/account/orders',
   ACCOUNT_ORDER_DETAIL_LEGACY: '/account/orders/:orderId',
+  ACCOUNT_WISHLIST_LEGACY: '/account/wishlist',
   ACCOUNT_PASSWORD_LEGACY: '/account/password',
   ACCOUNT_ADDRESS_LEGACY: '/account/address',
   LOGIN: '/dang-nhap',
@@ -67,4 +69,8 @@ export function buildSearchPath(query = '') {
 
 export function buildAccountOrderPath(orderId) {
   return `${ROUTES.ACCOUNT_ORDERS}/${encodeURIComponent(String(orderId ?? ''))}`
+}
+
+export function buildAccountWishlistPath() {
+  return ROUTES.ACCOUNT_WISHLIST
 }

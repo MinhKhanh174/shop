@@ -75,7 +75,7 @@ export function AddToCartSuccessModal({ open, item, cartTotalText, cartCountText
         </div>
 
         <div className="add-to-cart-success-modal__footer">
-          <Link to={ROUTES.CART} className="add-to-cart-success-modal__secondary" onClick={onClose}>
+          <Link to={ROUTES.CHECKOUT} className="add-to-cart-success-modal__secondary" onClick={onClose}>
             Thanh toán
           </Link>
           <Link to={ROUTES.CART} className="add-to-cart-success-modal__primary" onClick={onClose}>

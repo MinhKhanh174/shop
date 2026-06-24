@@ -10,6 +10,7 @@ import { coupons } from '../../data/siteConfig'
 import { formatCurrency } from '../../utils/currency'
 import { mapProductsToCards } from '../../utils/productMapper'
 import { getProductDetailPath } from '../../utils/productRoutes'
+import { useCartStore } from '../../store/useCartStore'
 import { ProductRail } from '../../shared/ui/ProductRail'
 import { CopyCodeButton } from '../../shared/ui/CopyCodeButton'
 import { CouponConditionModal } from '../../shared/ui/CouponConditionModal'
@@ -111,7 +112,7 @@ function CartBreadcrumb() {
 }
 
 function CartItemRow({ item, onDecrease, onIncrease, onQuantityChange, onRemove }) {
-  const maxQuantity = Number.isFinite(Number(item.stock)) ? Math.max(1, Number(item.stock)) : null
+  const maxQuantity = Number.isFinite(Number(item.stock)) && Number(item.stock) > 0 ? Math.max(1, Number(item.stock)) : null
   const canDecrease = Number(item.quantity) > 1
   const canIncrease = maxQuantity === null || Number(item.quantity) < maxQuantity
 
@@ -446,6 +447,7 @@ export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, totalPrice } = useCart()
   const navigate = useNavigate()
   const { products: remoteProducts = [] } = useHomeData()
+  const syncCartWithCatalog = useCartStore((state) => state.syncCartWithCatalog)
   const [note, setNote] = useState('')
   const [isVoucherDrawerOpen, setIsVoucherDrawerOpen] = useState(false)
   const [activeCoupon, setActiveCoupon] = useState(null)
@@ -475,8 +477,14 @@ export default function CartPage() {
   )
 
   useEffect(() => {
+    if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+      syncCartWithCatalog(remoteProducts)
+    }
+  }, [remoteProducts, syncCartWithCatalog])
+
+  useEffect(() => {
     cartItemsWithStock.forEach((item) => {
-      const maxQuantity = Number.isFinite(Number(item.stock)) ? Math.max(1, Number(item.stock)) : null
+      const maxQuantity = Number.isFinite(Number(item.stock)) && Number(item.stock) > 0 ? Math.max(1, Number(item.stock)) : null
 
       if (maxQuantity !== null && Number(item.quantity) > maxQuantity) {
         updateQuantity(item.id, maxQuantity)

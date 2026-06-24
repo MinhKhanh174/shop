@@ -29,13 +29,23 @@ function normalizeQuantity(value) {
   return Math.max(1, Math.round(quantity))
 }
 
-function normalizePrice(value) {
+function normalizePrice(value, { alreadyConverted = false } = {}) {
   const price = Number(value)
   if (!Number.isFinite(price) || Number.isNaN(price)) {
     return 0
   }
 
-  return price < 1000 ? Math.round(price * 25000) : Math.round(price)
+  return alreadyConverted ? Math.round(price) : Math.round(price * 25000)
+}
+
+function normalizeStock(value) {
+  const stock = Number(value)
+
+  if (!Number.isFinite(stock) || stock <= 0) {
+    return null
+  }
+
+  return Math.max(1, Math.floor(stock))
 }
 
 function getUserScope(user = getAuthUser()) {
@@ -102,7 +112,8 @@ async function tryParseJson(response) {
 
 function toCartItem(product, quantity = 1, index = 0) {
   const source = product?.product && typeof product.product === 'object' ? product.product : product
-  const normalizedPrice = normalizePrice(source?.price ?? product?.price)
+  const alreadyConverted = Boolean(product?.priceText || source?.priceText)
+  const normalizedPrice = normalizePrice(source?.price ?? product?.price, { alreadyConverted })
   const name = normalizeText(source?.name ?? source?.title ?? product?.name ?? product?.title, 'Sản phẩm')
 
   return {
@@ -112,9 +123,7 @@ function toCartItem(product, quantity = 1, index = 0) {
     image: source?.image ?? source?.thumbnail ?? source?.images?.[0] ?? product?.image ?? product?.thumbnail ?? null,
     brand: normalizeText(source?.brand ?? product?.brand, ''),
     priceText: normalizeText(product?.priceText, formatCurrency(normalizedPrice)),
-    stock: Number.isFinite(Number(source?.stock ?? product?.stock))
-      ? Math.max(0, Math.floor(Number(source?.stock ?? product?.stock)))
-      : 0,
+    stock: normalizeStock(source?.stock ?? product?.stock),
     quantity: normalizeQuantity(quantity ?? product?.quantity),
     variant: normalizeText(product?.variant, ''),
   }
@@ -126,6 +135,36 @@ function normalizeCartItems(cartItems) {
   }
 
   return cartItems.map((item, index) => toCartItem(item, item?.quantity, index))
+}
+
+function normalizeCartItemAgainstCatalog(item, catalogProduct = null) {
+  const sourceProduct = catalogProduct?.source ?? catalogProduct
+  const catalogAlreadyConverted = Boolean(catalogProduct?.priceText || sourceProduct?.priceText)
+  const normalizedPrice = normalizePrice(sourceProduct?.price ?? item?.price, { alreadyConverted: catalogAlreadyConverted })
+  const stock = normalizeStock(sourceProduct?.stock ?? item?.stock)
+  const quantity = normalizeQuantity(item?.quantity)
+
+  return {
+    ...item,
+    id: sourceProduct?.id ?? item?.id,
+    name: normalizeText(sourceProduct?.name ?? sourceProduct?.title ?? item?.name ?? item?.title, 'Sản phẩm'),
+    price: normalizedPrice,
+    image: sourceProduct?.image ?? sourceProduct?.thumbnail ?? sourceProduct?.images?.[0] ?? item?.image ?? item?.thumbnail ?? null,
+    brand: normalizeText(sourceProduct?.brand ?? item?.brand, ''),
+    priceText: normalizeText(item?.priceText, formatCurrency(normalizedPrice)),
+    stock,
+    quantity: stock !== null ? Math.min(quantity, stock) : quantity,
+    source: sourceProduct ?? item?.source ?? null,
+  }
+}
+
+export function syncCartItemsWithCatalog(cartItems, catalogProducts = []) {
+  const normalizedItems = normalizeCartItems(cartItems)
+  const catalogById = new Map(
+    (Array.isArray(catalogProducts) ? catalogProducts : []).map((product) => [String(product?.id), product]),
+  )
+
+  return normalizedItems.map((item) => normalizeCartItemAgainstCatalog(item, catalogById.get(String(item.id))))
 }
 
 function getProductsPayload(cartItems) {

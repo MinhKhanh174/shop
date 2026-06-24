@@ -85,6 +85,11 @@
   outline: none;
 }
 
+.phone-input__field[readonly] {
+  background: #f3f4f6;
+  color: #334155;
+}
+
 .phone-input--auth .phone-input__field {
   height: 100%;
   font-size: 14px;

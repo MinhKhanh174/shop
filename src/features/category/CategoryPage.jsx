@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { phoneAccessoriesProducts, soundProducts } from '../../data/homeData'
@@ -12,6 +12,7 @@ import {
   COLLECTION_WATCH_SLUG,
   normalizeCollectionSlug,
 } from '../../utils/categoryRoutes'
+import { getProductsByCategory } from '../../services/productService'
 import { CategoryBreadcrumb } from './components/CategoryBreadcrumb'
 import { CategoryEmptyState } from './components/CategoryEmptyState'
 import { CategoryProductGrid } from './components/CategoryProductGrid'
@@ -31,6 +32,15 @@ import {
 } from '../product/productList.utils'
 
 const PAGE_SIZE = 12
+const SPECIAL_COLLECTION_SLUGS = new Set([
+  COLLECTION_FEATURED_SLUG,
+  COLLECTION_AUDIO_SLUG,
+  COLLECTION_WATCH_SLUG,
+  COLLECTION_ACCESSORIES_SLUG,
+  'audio',
+  'watch',
+  'accessories',
+])
 
 const COLLECTION_META = {
   [COLLECTION_FEATURED_SLUG]: {
@@ -314,14 +324,67 @@ export default function CategoryPage() {
   const { categorySlug: rawCategorySlug = '' } = useParams()
   const categorySlug = normalizeCollectionSlug(rawCategorySlug)
   const { products: remoteProducts = [], categoryItems = [], loading } = useHomeData()
+  const [categoryProducts, setCategoryProducts] = useState([])
+  const [categoryFetched, setCategoryFetched] = useState(false)
+  const [categoryLoading, setCategoryLoading] = useState(false)
 
   const collectionMeta = useMemo(() => resolveCollectionMeta(categorySlug, categoryItems), [categoryItems, categorySlug])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadCategoryProducts() {
+      if (!categorySlug || SPECIAL_COLLECTION_SLUGS.has(categorySlug)) {
+        setCategoryProducts([])
+        setCategoryFetched(false)
+        setCategoryLoading(false)
+        return
+      }
+
+      setCategoryLoading(true)
+
+      try {
+        const products = await getProductsByCategory(categorySlug)
+        if (!active) {
+          return
+        }
+
+        setCategoryProducts(Array.isArray(products) ? products : [])
+        setCategoryFetched(true)
+      } catch (error) {
+        if (!active) {
+          return
+        }
+
+        console.error(error)
+        setCategoryProducts([])
+        setCategoryFetched(false)
+      } finally {
+        if (active) {
+          setCategoryLoading(false)
+        }
+      }
+    }
+
+    void loadCategoryProducts()
+
+    return () => {
+      active = false
+    }
+  }, [categorySlug])
+
   const collectionProducts = useMemo(
-    () => buildCollectionCards(categorySlug, remoteProducts),
-    [categorySlug, remoteProducts],
+    () => {
+      if (!SPECIAL_COLLECTION_SLUGS.has(categorySlug) && categoryFetched) {
+        return categoryProducts
+      }
+
+      return buildCollectionCards(categorySlug, remoteProducts)
+    },
+    [categoryFetched, categoryProducts, categorySlug, remoteProducts],
   )
 
-  if (loading) {
+  if (loading || (categoryLoading && !SPECIAL_COLLECTION_SLUGS.has(categorySlug))) {
     return <CategorySkeleton />
   }
 

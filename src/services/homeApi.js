@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_BASE_URL } from '../config/api'
 
 const dummyJsonClient = axios.create({
-  baseURL: 'https://dummyjson.com',
+  baseURL: String(API_BASE_URL ?? '').trim() || 'https://dummyjson.com',
   timeout: 10000,
 })
 
@@ -13,8 +14,18 @@ export function fetchProductCategories() {
   return dummyJsonClient.get('/products/categories')
 }
 
+export function fetchProductCategoryList() {
+  return dummyJsonClient.get('/products/category-list')
+}
+
 export function fetchProductById(id) {
   return dummyJsonClient.get(`/products/${id}`)
+}
+
+export function fetchProductsByCategory(categorySlug, params = {}) {
+  const normalizedSlug = String(categorySlug ?? '').trim()
+
+  return dummyJsonClient.get(`/products/category/${encodeURIComponent(normalizedSlug)}`, { params })
 }
 
 export function searchProducts(query) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchProducts, fetchProductCategories } from '../services/homeApi'
+import { fetchProducts, fetchProductCategories, fetchProductCategoryList } from '../services/homeApi'
 import { getRemoteBrands } from '../utils/productMapper'
 
 const DEFAULT_QUERY = {
@@ -25,6 +25,34 @@ function mergeProducts(firstPage, secondPage) {
   return Array.from(productsById.values())
 }
 
+function mergeCategories(categoryObjects, categoryList) {
+  const categoriesBySlug = new Map()
+
+  ;(Array.isArray(categoryObjects) ? categoryObjects : []).forEach((category) => {
+    const slug = String(category?.slug ?? '').trim()
+    if (!slug) {
+      return
+    }
+
+    categoriesBySlug.set(slug, category)
+  })
+
+  ;(Array.isArray(categoryList) ? categoryList : []).forEach((category) => {
+    const slug = String(category?.slug ?? category ?? '').trim()
+    if (!slug || categoriesBySlug.has(slug)) {
+      return
+    }
+
+    categoriesBySlug.set(slug, {
+      slug,
+      name: slug,
+      url: `/products/category/${encodeURIComponent(slug)}`,
+    })
+  })
+
+  return Array.from(categoriesBySlug.values())
+}
+
 export function useHomeContent(refreshToken = 0) {
   const [remote, setRemote] = useState({
     products: [],
@@ -48,8 +76,13 @@ export function useHomeContent(refreshToken = 0) {
       }))
     }, 0)
 
-    Promise.all([fetchProducts(DEFAULT_QUERY), fetchProducts(NEXT_QUERY), fetchProductCategories()])
-      .then(([firstPageResponse, secondPageResponse, categoriesResponse]) => {
+    Promise.all([
+      fetchProducts(DEFAULT_QUERY),
+      fetchProducts(NEXT_QUERY),
+      fetchProductCategories(),
+      fetchProductCategoryList(),
+    ])
+      .then(([firstPageResponse, secondPageResponse, categoriesResponse, categoryListResponse]) => {
         if (!active) {
           return
         }
@@ -62,7 +95,10 @@ export function useHomeContent(refreshToken = 0) {
         const secondPageProducts = Array.isArray(secondPageResponse.data?.products)
           ? secondPageResponse.data.products
           : []
-        const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []
+        const categories = mergeCategories(
+          Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [],
+          Array.isArray(categoryListResponse.data) ? categoryListResponse.data : [],
+        )
         const mergedProducts = mergeProducts(firstPageProducts, secondPageProducts)
 
         setRemote({

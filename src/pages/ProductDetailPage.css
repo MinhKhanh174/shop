@@ -243,18 +243,43 @@
   color: #2563eb;
 }
 
-.pd-info__compare {
-  color: #2563eb;
-  font-size: 14px;
+.pd-info__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: nowrap;
+  margin-top: 8px;
+  width: fit-content;
+}
+
+.pd-info__action {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  width: fit-content;
-  margin-top: 8px;
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.2;
+  transition: color 0.18s ease;
+}
+
+.pd-info__action:hover {
+  color: #ef1f1f;
+}
+
+.pd-info__compare {
+  color: #2563eb;
+}
+
+.pd-info__favorite {
+  color: #6b7280;
+}
+
+.pd-info__favorite.is-active {
+  color: #ef1f1f;
 }
 
 .pd-price-box {
