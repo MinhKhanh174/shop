@@ -10,6 +10,10 @@
   padding: 14px 0 40px;
 }
 
+.account-page__inner {
+  padding-bottom: 0;
+}
+
 .account-page__breadcrumb {
   display: flex;
   flex-wrap: wrap;
@@ -742,28 +746,33 @@
 
 .account-page__orders-panel {
   min-width: 0;
+  width: 100%;
 }
 
 .account-page__orders-table {
   margin-top: 20px;
   border-top: 1px solid #dde3ea;
+  width: 100%;
 }
 
 .account-page__orders-row {
   display: grid;
-  grid-template-columns: 140px 90px minmax(140px, 1.6fr) 160px 140px 140px;
+  grid-template-columns: 150px 100px minmax(170px, 1.7fr) 170px 150px 150px;
   gap: 0;
   align-items: center;
 }
 
 .account-page__orders-row--head {
   border-bottom: 1px solid #dde3ea;
+  min-height: 40px;
 }
 
 .account-page__orders-row--link {
   color: #202124;
   text-decoration: none;
   transition: background-color 0.2s ease;
+  min-height: 66px;
+  align-items: start;
 }
 
 .account-page__orders-row--link:hover {
@@ -771,10 +780,11 @@
 }
 
 .account-page__orders-cell {
-  padding: 12px 6px;
+  padding: 16px 10px 16px 6px;
   font-size: 14px;
   line-height: 1.45;
   color: #202124;
+  word-break: break-word;
 }
 
 .account-page__orders-cell--head {
@@ -792,31 +802,212 @@
   color: #202124;
 }
 
-.account-page__detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.account-page__order-number-link {
+  color: #df0a16;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.account-page__order-number-link:hover {
+  text-decoration: underline;
+}
+
+.account-page__order-total {
+  color: #df0a16;
+  font-weight: 700;
+}
+
+.account-page__detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.account-page__detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
-  margin-top: 18px;
 }
 
-.account-page__detail-item {
-  border: 1px solid #f0f0f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: #fafafa;
+.account-page__detail-heading {
+  min-width: 0;
 }
 
-.account-page__detail-item span {
-  display: block;
-  color: #5f6b7b;
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-.account-page__detail-item strong {
+.account-page__detail-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 6px 0 0;
   color: #202124;
   font-size: 14px;
+  line-height: 1.5;
+}
+
+.account-page__detail-status-line strong,
+.account-page__detail-box-content strong,
+.account-page__detail-product-name,
+.account-page__detail-total-row--grand strong {
+  color: #df0a16;
+}
+
+.account-page__detail-date {
+  flex: 0 0 auto;
+  color: #5f6b7b;
+  font-size: 13px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.account-page__detail-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr) minmax(220px, 1fr);
+  gap: 16px;
+}
+
+.account-page__detail-box {
+  min-width: 0;
+  border: 1px solid #d9dee7;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.account-page__detail-box-title {
+  padding: 9px 12px 0;
+  font-size: 15px;
+  color: #4a4a4a;
+}
+
+.account-page__detail-box-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #202124;
+}
+
+.account-page__detail-table-card {
+  border: 1px solid #d9dee7;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.account-page__detail-table {
+  width: 100%;
+}
+
+.account-page__detail-table-head,
+.account-page__detail-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) 150px 90px 150px;
+}
+
+.account-page__detail-table-head {
+  border-bottom: 1px solid #e1e6ef;
+}
+
+.account-page__detail-table-cell {
+  padding: 14px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #202124;
+}
+
+.account-page__detail-table-cell--head {
+  padding-top: 16px;
+  padding-bottom: 12px;
+  color: #4a4a4a;
+}
+
+.account-page__detail-table-row + .account-page__detail-table-row {
+  border-top: 1px solid #e1e6ef;
+}
+
+.account-page__detail-product {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.account-page__detail-thumb {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border: 1px solid #d9dee7;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.account-page__detail-thumb--placeholder {
+  background: linear-gradient(135deg, #f4f6f9, #e7ebf2);
+}
+
+.account-page__detail-product-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-page__detail-product-name {
+  font-size: 13px;
   line-height: 1.45;
+}
+
+.account-page__detail-product-variant,
+.account-page__detail-product-sku {
+  font-size: 12px;
+  color: #5f6b7b;
+  line-height: 1.4;
+}
+
+.account-page__detail-product-sku {
+  margin-top: 2px;
+}
+
+.account-page__detail-empty {
+  padding: 16px 12px;
+  font-size: 14px;
+  color: #202124;
+}
+
+.account-page__detail-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 16px 20px;
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.account-page__detail-total-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #202124;
+}
+
+.account-page__detail-total-row strong {
+  text-align: right;
+  font-weight: 700;
+}
+
+.account-page__detail-total-row--grand {
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #e1e6ef;
+  font-size: 15px;
+}
+
+.account-page__detail-empty-state {
+  max-width: 760px;
 }
 
 @media (max-width: 960px) {
@@ -838,6 +1029,29 @@
   .account-page__wishlist-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     max-height: none;
+  }
+
+  .account-page__detail-header,
+  .account-page__detail-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-page__detail-header {
+    display: grid;
+  }
+
+  .account-page__detail-date {
+    white-space: normal;
+  }
+
+  .account-page__detail-totals {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .account-page__detail-table-head,
+  .account-page__detail-table-row {
+    grid-template-columns: minmax(0, 1.5fr) 110px 72px 110px;
   }
 }
 
@@ -870,5 +1084,24 @@
 
   .account-page__orders-cell:nth-child(n + 4) {
     display: none;
+  }
+
+  .account-page__detail-summary-grid,
+  .account-page__detail-table-head,
+  .account-page__detail-table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .account-page__detail-table-cell--head:not(:first-child),
+  .account-page__detail-table-row .account-page__detail-table-cell:not(:first-child) {
+    padding-top: 0;
+  }
+
+  .account-page__detail-product {
+    align-items: flex-start;
+  }
+
+  .account-page__detail-totals {
+    padding-inline: 12px;
   }
 }

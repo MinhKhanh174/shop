@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { ROUTES } from '../../../config/routes'
+import { ROUTES } from '../../../constants/routes'
 import { articles } from '../../../data/siteConfig'
 import { buildArticleThumb } from '../../../utils/articleThumb'
 import { buildBlogArticlePath } from '../../../utils/blogArticles'

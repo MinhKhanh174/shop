@@ -1,5 +1,5 @@
 import { CreditCard, Smartphone, ShoppingCart } from 'lucide-react'
-import { ROUTES } from '../config/routes'
+import { ROUTES } from '../constants/routes'
 
 export const topActions = [
   { id: 'phone', label: 'Gọi mua hàng', value: '19006750', iconKey: 'phone' },

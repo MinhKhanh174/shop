@@ -1,24 +1,26 @@
 import { create } from 'zustand'
 import { getAuthUser } from '../utils/authStorage'
-import { normalizeWishlistProduct, queuePendingWishlistProduct, resolveWishlistForUser, saveWishlist } from '../services/wishlistService'
+import {
+  loadWishlist,
+  normalizeWishlistProduct,
+  queuePendingWishlistProduct,
+  resolveWishlistForUser,
+  saveWishlist,
+} from '../services/wishlistService'
 
 const AUTH_CHANGE_EVENT = 'techstore:auth-changed'
 
 export const useWishlistStore = create((set, get) => ({
-  wishlistItems: resolveWishlistForUser(getAuthUser()),
+  wishlistItems: loadWishlist(getAuthUser()),
 
-  rehydrateWishlist: (user = getAuthUser()) => {
-    const nextItems = resolveWishlistForUser(user)
+  rehydrateWishlist: async (user = getAuthUser()) => {
+    const nextItems = await resolveWishlistForUser(user)
     set({ wishlistItems: nextItems })
     return nextItems
   },
 
   toggleFavorite: (product) => {
     const currentUser = getAuthUser()
-    if (!currentUser) {
-      return false
-    }
-
     const normalizedProduct = normalizeWishlistProduct(product)
     if (!normalizedProduct) {
       return false

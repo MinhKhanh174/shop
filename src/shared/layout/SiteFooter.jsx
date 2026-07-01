@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Mail, MapPin, Smartphone } from 'lucide-react'
 import { NewsletterForm } from '../../components/NewsletterForm'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import brandLogo from '../../assets/tech-do.png'
 import paymentImage from '../../assets/PTTT.png'
 import facebookIcon from '../../assets/UngDung/Fb.png'

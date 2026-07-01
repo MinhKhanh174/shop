@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useHomeStore } from '../../store/useHomeStore'
 import { buildCategoryMegaGroups } from '../../utils/categoryMenuBuilder'
 import { getCategoryCollectionPath } from '../../utils/categoryRoutes'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 
 function CategoryMegaPanel({ categoryKey, remoteProducts }) {
   const groups = useMemo(() => buildCategoryMegaGroups(remoteProducts, categoryKey), [remoteProducts, categoryKey])

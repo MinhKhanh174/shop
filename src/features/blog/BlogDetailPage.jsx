@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { useHomeData } from '../../hooks/useHomeData'
 import { mapProductsToCards } from '../../utils/productMapper'
 import { blogArticles, buildBlogArticlePath, getBlogArticleBySlug } from '../../utils/blogArticles'

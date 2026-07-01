@@ -89,11 +89,8 @@ export const useCartStore = create((set, get) => ({
   },
 
   syncCartWithCatalog: (catalogProducts = []) => {
-    const currentUser = getAuthUser()
-
     set((state) => {
       const nextItems = syncCartItemsWithCatalog(state.cartItems, catalogProducts)
-      saveCart(nextItems, currentUser)
       return { cartItems: nextItems }
     })
   },

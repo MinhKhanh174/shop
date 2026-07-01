@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ROUTES } from '../../../config/routes'
+import { ROUTES } from '../../../constants/routes'
 import { SectionHeading } from '../../../shared/ui/SectionHeading'
 import sonyLogo from '../../../assets/ThuongHieuSP/SONY.png'
 import brand2 from '../../../assets/ThuongHieuSP/brand_2.webp'

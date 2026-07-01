@@ -7,12 +7,12 @@ import { SiteFooter } from './shared/layout/SiteFooter'
 import { CompareTray } from './shared/ui/CompareTray'
 import { QuickContactButtons } from './shared/ui/QuickContactButtons'
 import { HomeDataProvider } from './context/HomeDataProvider'
-import { ROUTES } from './config/routes'
-import { clearAuthSession, getAuthToken, getAuthUser, hasAuthSession, isRemoteAuthToken, setAuthSession } from './utils/authStorage'
+import { ROUTES } from './constants/routes'
+import { hasAuthSession } from './utils/authStorage'
+import { bootstrapAuthSession } from './utils/authBootstrap'
 import { useRouteCategorySync } from './hooks/useRouteCategorySync'
 import { useScrollShadow } from './hooks/useScrollShadow'
 import { getCategoryCollectionPath } from './utils/categoryRoutes'
-import { getCurrentUser } from './services/usersApi'
 import './store/useWishlistStore'
 import './App.css'
 
@@ -32,6 +32,8 @@ const CheckoutPage = lazy(() => import('./features/checkout/CheckoutPage'))
 const StoreSystemPage = lazy(() => import('./features/store/StoreSystemPage'))
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./features/auth/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./features/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./features/auth/ResetPasswordPage'))
 const AccountPage = lazy(() => import('./features/account/AccountPage'))
 const AccountPasswordPage = lazy(() => import('./features/account/AccountPasswordPage'))
 const AccountAddressPage = lazy(() => import('./features/account/AccountAddressPage'))
@@ -113,6 +115,16 @@ function AppShell() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!hasAuthSession()) {
+      return
+    }
+
+    void bootstrapAuthSession().catch((error) => {
+      console.error('bootstrapAuthSession failed', error)
+    })
+  }, [])
+
   useLayoutEffect(() => {
     const headerEl = headerRef.current
     if (!headerEl) return
@@ -137,40 +149,6 @@ function AppShell() {
 
     return () => {
       observer.disconnect()
-    }
-  }, [])
-
-  useEffect(() => {
-    const storedUser = getAuthUser()
-    const authToken = getAuthToken()
-
-    if (!storedUser || !authToken || !isRemoteAuthToken(authToken)) {
-      return undefined
-    }
-
-    let active = true
-
-    getCurrentUser(authToken)
-      .then((currentUser) => {
-        if (!active || !currentUser) {
-          return
-        }
-
-        setAuthSession(currentUser, {
-          accessToken: authToken,
-          refreshToken: storedUser.refreshToken ?? '',
-        })
-      })
-      .catch((error) => {
-        const status = error?.response?.status
-
-        if (status === 401 || status === 403) {
-          clearAuthSession()
-        }
-      })
-
-    return () => {
-      active = false
     }
   }, [])
 
@@ -289,6 +267,9 @@ function AppShell() {
                 <Route path={ROUTES.LOGIN_LEGACY} element={<Navigate to={ROUTES.LOGIN} replace />} />
                 <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
                 <Route path={ROUTES.REGISTER_LEGACY} element={<Navigate to={ROUTES.REGISTER} replace />} />
+                <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+                <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+                <Route path={ROUTES.RESET_PASSWORD_LEGACY} element={<Navigate to={ROUTES.RESET_PASSWORD} replace />} />
                 <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
                 <Route path={ROUTES.CHECKOUT_LEGACY} element={<Navigate to={ROUTES.CHECKOUT} replace />} />
                 <Route path="*" element={<NotFoundPage />} />

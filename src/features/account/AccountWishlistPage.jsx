@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import AccountLayout from './AccountLayout'
 import './account.css'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { getAuthUser } from '../../utils/authStorage'
 import { loadAddresses } from '../../utils/addressStorage'
 import { useWishlistStore } from '../../store/useWishlistStore'

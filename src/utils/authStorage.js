@@ -1,6 +1,10 @@
+import { getJsonCookie, removeCookie, setJsonCookie } from '../storage/cookieStorage'
+
 const AUTH_TOKEN_KEY = 'techstore_auth_token'
 const AUTH_USER_KEY = 'techstore_user'
+const AUTH_SESSION_COOKIE_KEY = 'techstore_auth_session'
 const REGISTERED_ACCOUNT_KEY = 'techstore_registered_account'
+const demoResetPasswordCache = {}
 
 function readJson(key, fallback = null) {
   if (typeof window === 'undefined') {
@@ -40,6 +44,30 @@ function removeKey(key) {
   }
 }
 
+function readCookieAuthSession() {
+  const cookieSession = getJsonCookie(AUTH_SESSION_COOKIE_KEY, null)
+
+  if (!cookieSession || typeof cookieSession !== 'object') {
+    return null
+  }
+
+  const user = cookieSession.user && typeof cookieSession.user === 'object' ? cookieSession.user : null
+  const authToken = String(cookieSession.authToken ?? '').trim()
+
+  if (!user || !authToken) {
+    return null
+  }
+
+  return {
+    user,
+    authToken,
+  }
+}
+
+function readAuthSession() {
+  return readCookieAuthSession()
+}
+
 function emitAuthChange(user) {
   if (typeof window === 'undefined') {
     return
@@ -60,8 +88,56 @@ export function saveRegisteredAccount(account) {
   writeJson(REGISTERED_ACCOUNT_KEY, account)
 }
 
+export function getDemoResetPassword(email) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+
+  if (!normalizedEmail) {
+    return null
+  }
+
+  const entry = demoResetPasswordCache[normalizedEmail]
+
+  if (!entry || typeof entry !== 'object') {
+    return null
+  }
+
+  return {
+    email: normalizedEmail,
+    password: String(entry.password ?? ''),
+    updatedAt: String(entry.updatedAt ?? ''),
+  }
+}
+
+export function saveDemoResetPassword(email, password) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+  const normalizedPassword = String(password ?? '').trim()
+
+  if (!normalizedEmail || !normalizedPassword) {
+    return
+  }
+
+  demoResetPasswordCache[normalizedEmail] = {
+    password: normalizedPassword,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function clearDemoResetPassword(email) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+
+  if (!normalizedEmail) {
+    return
+  }
+
+  if (!demoResetPasswordCache[normalizedEmail]) {
+    return
+  }
+
+  delete demoResetPasswordCache[normalizedEmail]
+}
+
 export function getAuthUser() {
-  return readJson(AUTH_USER_KEY, null)
+  return readAuthSession()?.user ?? null
 }
 
 export function getAuthToken() {
@@ -69,10 +145,8 @@ export function getAuthToken() {
     return ''
   }
 
-  const storedUser = getAuthUser()
-  const storedToken = String(window.localStorage.getItem(AUTH_TOKEN_KEY) ?? '').trim()
-
-  return String(storedUser?.accessToken ?? storedUser?.refreshToken ?? storedToken ?? '').trim()
+  const storedSession = readAuthSession()
+  return String(storedSession?.authToken ?? '').trim()
 }
 
 export function isRemoteAuthToken(token) {
@@ -86,14 +160,7 @@ export function isRemoteAuthToken(token) {
 }
 
 export function hasAuthSession() {
-  const storedUser = getAuthUser()
-
-  return Boolean(
-    storedUser &&
-      (storedUser.accessToken ||
-        storedUser.refreshToken ||
-        (typeof window !== 'undefined' && window.localStorage.getItem(AUTH_TOKEN_KEY))),
-  )
+  return Boolean(readAuthSession())
 }
 
 export function setAuthSession(user, tokens = {}) {
@@ -111,18 +178,27 @@ export function setAuthSession(user, tokens = {}) {
     refreshToken: String(tokens?.refreshToken ?? user?.refreshToken ?? '').trim(),
   }
 
-  writeJson(AUTH_USER_KEY, normalizedUser)
-
   const authToken =
     normalizedUser.accessToken ||
     normalizedUser.refreshToken ||
     `techstore_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
+  const sessionPayload = {
+    user: normalizedUser,
+    authToken,
+    updatedAt: new Date().toISOString(),
+  }
+
+  setJsonCookie(AUTH_SESSION_COOKIE_KEY, sessionPayload, {
+    maxAge: 60 * 60 * 24 * 7,
+  })
+  writeJson(AUTH_USER_KEY, normalizedUser)
   writeJson(AUTH_TOKEN_KEY, authToken)
   emitAuthChange(normalizedUser)
 }
 
 export function clearAuthSession() {
+  removeCookie(AUTH_SESSION_COOKIE_KEY)
   removeKey(AUTH_USER_KEY)
   removeKey(AUTH_TOKEN_KEY)
   emitAuthChange(null)

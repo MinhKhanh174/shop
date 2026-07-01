@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { supportLinks } from '../../data/siteConfig'
 import { CategoryMenu } from './CategoryMenu'
 import { useHomeData } from '../../hooks/useHomeData'

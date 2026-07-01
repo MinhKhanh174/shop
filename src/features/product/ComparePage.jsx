@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { SectionHeading } from '../../shared/ui/SectionHeading.jsx'
 import { MAX_COMPARE_ITEMS, useCompareStore } from '../../store/useCompareStore'
 import { extractColorOptions, extractStorageOptions } from './productDetail.utils'

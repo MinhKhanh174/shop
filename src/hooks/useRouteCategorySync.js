@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ROUTES } from '../config/routes'
+import { ROUTES } from '../constants/routes'
 import { useHomeStore } from '../store/useHomeStore'
 
 export function useRouteCategorySync() {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { buildDisplayName } from '../../utils/authStorage'
 
 function buildMenuItems(addressCount) {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, CheckCircle2, CircleCheckBig, ShieldCheck } from 'lucide-react'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import Button from '../../shared/ui/Button'
 import Card from '../../shared/ui/Card'
 

@@ -1,4 +1,5 @@
 import { getItem, setItem } from '../storage/localStorage.js'
+import { fetchSharedAddresses, saveSharedAddresses } from '../services/accountDataApi'
 
 const LEGACY_ADDRESSES_KEY = 'techstore_addresses'
 
@@ -108,10 +109,32 @@ function mergeUserAddressSeed(addresses, user) {
   }))
 }
 
+function normalizeAddressCollection(addresses) {
+  const normalized = Array.isArray(addresses) ? addresses.map((address, index) => normalizeAddress(address, index)) : []
+
+  if (!normalized.length) {
+    return normalized
+  }
+
+  const defaultIndex = normalized.findIndex((address) => address.defaultAddress)
+
+  if (defaultIndex >= 0) {
+    return normalized.map((address, index) => ({
+      ...address,
+      defaultAddress: index === defaultIndex,
+    }))
+  }
+
+  return normalized.map((address, index) => ({
+    ...address,
+    defaultAddress: index === 0,
+  }))
+}
+
 export function loadAddresses(user = null) {
   const scopedKey = getAddressStorageKey(user)
   const addresses = getItem(scopedKey, [])
-  const normalized = Array.isArray(addresses) ? addresses.map((address, index) => normalizeAddress(address, index)) : []
+  const normalized = normalizeAddressCollection(addresses)
 
   if (!normalized.length) {
     const apiSeedAddress = user ? createAddressFromUserProfile(user) : null
@@ -162,9 +185,62 @@ export function loadAddresses(user = null) {
 }
 
 export function saveAddresses(addresses, user = null) {
-  const normalized = Array.isArray(addresses) ? addresses.map((address, index) => normalizeAddress(address, index)) : []
+  const normalized = normalizeAddressCollection(addresses)
   setItem(getAddressStorageKey(user), normalized)
+
+  const userEmail = String(user?.email ?? '').trim().toLowerCase()
+
+  if (userEmail) {
+    void saveSharedAddresses(userEmail, normalized).catch((error) => {
+      console.error('addressStorage saveSharedAddresses failed', error)
+    })
+  }
+
   return normalized
+}
+
+export async function syncAddressesFromRemote(user = null) {
+  if (!user) {
+    return loadAddresses(null)
+  }
+
+  const userEmail = String(user?.email ?? '').trim().toLowerCase()
+  const scopedKey = getAddressStorageKey(user)
+  const localAddresses = loadAddresses(user)
+
+  if (!userEmail) {
+    return localAddresses
+  }
+
+  try {
+    const remoteAddresses = await fetchSharedAddresses(userEmail)
+
+    if (Array.isArray(remoteAddresses) && remoteAddresses.length > 0) {
+      const normalizedRemote = normalizeAddressCollection(remoteAddresses)
+      setItem(scopedKey, normalizedRemote)
+      return normalizedRemote
+    }
+
+    if (localAddresses.length > 0) {
+      const normalizedLocal = normalizeAddressCollection(localAddresses)
+      await saveSharedAddresses(userEmail, normalizedLocal)
+      setItem(scopedKey, normalizedLocal)
+      return normalizedLocal
+    }
+
+    const apiSeedAddress = createAddressFromUserProfile(user)
+
+    if (apiSeedAddress) {
+      const seededAddresses = mergeUserAddressSeed([], user)
+      await saveSharedAddresses(userEmail, seededAddresses)
+      setItem(scopedKey, seededAddresses)
+      return seededAddresses
+    }
+  } catch (error) {
+    console.error('addressStorage syncAddressesFromRemote failed', error)
+  }
+
+  return localAddresses
 }
 
 export function createAddressDraft(values, existingId = null) {

@@ -10,7 +10,7 @@ import { useWishlistStore } from '../../store/useWishlistStore'
 import { AddToCartButton } from './AddToCartButton'
 import { AddToCartSuccessModal } from './AddToCartSuccessModal'
 import { ProductQuickViewModal } from './ProductQuickViewModal'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { footerColumns } from '../../data/siteConfig'
 
 const policyItems = footerColumns.find((column) => column.title === 'Chính sách')?.items ?? []

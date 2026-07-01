@@ -2,6 +2,7 @@ import { createElement, useCallback, useState } from 'react'
 import { useCartStore } from '../store/useCartStore'
 import { AddToCartSuccessModal } from '../shared/ui/AddToCartSuccessModal'
 import { buildAddToCartSuccessPayload } from '../shared/product/productActionUtils'
+import { clampQuantity } from '../utils/quantity'
 
 export function useAddToCartSuccessFlow() {
   const addToCart = useCartStore((state) => state.addToCart)
@@ -15,7 +16,8 @@ export function useAddToCartSuccessFlow() {
     (product, options = {}) => {
       if (!product) return
 
-      const quantity = Math.max(1, Math.floor(Number(options.quantity) || 1))
+      const requestedQuantity = Math.max(1, Math.floor(Number(options.quantity) || 1))
+      const quantity = clampQuantity(requestedQuantity, product?.stock ?? null)
       addToCart(product, quantity)
       setSuccessPayload(buildAddToCartSuccessPayload(product, { quantity }))
     },

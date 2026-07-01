@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MapPin, Menu, Phone, ShoppingCart, User } from 'lucide-react'
 import Card from '../../shared/ui/Card'
 import { CategoryMenu } from './CategoryMenu'
 import logoSrc from '../../assets/logo.webp'
 import { topActions } from '../../data/siteConfig'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { useHomeData } from '../../hooks/useHomeData'
 import { useCartStore } from '../../store/useCartStore'
 import { useHomeStore } from '../../store/useHomeStore'
-import { hasAuthSession } from '../../utils/authStorage'
+import { clearAuthSession, hasAuthSession } from '../../utils/authStorage'
 import { SearchBar } from './SearchBar'
 import { formatCurrency } from '../../utils/currency'
 
@@ -20,6 +20,7 @@ const actionIcons = {
 }
 
 export function HeaderTop({ isScrolled = false }) {
+  const navigate = useNavigate()
   const cartItems = useCartStore((state) => state.cartItems)
   const itemCount = useCartStore((state) => state.getItemCount())
   const syncCartWithCatalog = useCartStore((state) => state.syncCartWithCatalog)
@@ -87,6 +88,24 @@ export function HeaderTop({ isScrolled = false }) {
     }
   }
 
+  const handleLogout = () => {
+    clearAuthSession()
+    navigate(ROUTES.LOGIN, { replace: true })
+  }
+
+  const handleAccountTitleClick = () => {
+    navigate(isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN)
+  }
+
+  const handleAccountSubtitleClick = () => {
+    if (isAuthenticated) {
+      handleLogout()
+      return
+    }
+
+    navigate(ROUTES.LOGIN)
+  }
+
   const totalPrice = cartItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0)
   const previewItems = cartItems
 
@@ -128,21 +147,39 @@ export function HeaderTop({ isScrolled = false }) {
           {topActions.map((item) => {
             const Icon = actionIcons[item.iconKey]
 
-            if (item.id === 'account' && item.links?.length) {
-              const accountLink = isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN
-
+            if (item.id === 'account') {
               return (
-                <div key={item.id} className="header-action">
+                <div key={item.id} className="header-action header-action--account">
                   {Icon ? <Icon size={18} /> : null}
                   <div>
-                    <Link to={accountLink}>
-                      <span>{item.label}</span>
-                    </Link>
-                    {item.links.map((link) => (
-                      <Link key={link.label} to={link.to} className="header-action__link">
-                        {link.label}
-                      </Link>
-                    ))}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="header-action__title header-action__title--clickable"
+                      onClick={handleAccountTitleClick}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleAccountTitleClick()
+                        }
+                      }}
+                    >
+                      Tài khoản
+                    </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="header-action__subtitle header-action__subtitle--clickable"
+                      onClick={handleAccountSubtitleClick}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleAccountSubtitleClick()
+                        }
+                      }}
+                    >
+                      {isAuthenticated ? 'Đăng xuất' : 'Đăng nhập'}
+                    </span>
                   </div>
                 </div>
               )
@@ -152,8 +189,10 @@ export function HeaderTop({ isScrolled = false }) {
               <>
                 {Icon ? <Icon size={18} /> : null}
                 <div>
-                  <span>{item.label}</span>
-                  {item.links ? (
+                  <span className="header-action__title">{item.label}</span>
+                  {item.id === 'store' ? (
+                    <span className="header-action__subtitle header-action__subtitle--store">{item.value}</span>
+                  ) : item.links ? (
                     <>
                       {item.links.map((link) => (
                         <Link key={link.label} to={link.to} className="header-action__link">
@@ -168,16 +207,14 @@ export function HeaderTop({ isScrolled = false }) {
               </>
             )
 
-            return (
-              item.to ? (
-                <Link key={item.id} to={item.to} className="header-action">
-                  {actionBody}
-                </Link>
-              ) : (
-                <div key={item.id} className="header-action">
-                  {actionBody}
-                </div>
-              )
+            return item.to ? (
+              <Link key={item.id} to={item.to} className="header-action">
+                {actionBody}
+              </Link>
+            ) : (
+              <div key={item.id} className="header-action">
+                {actionBody}
+              </div>
             )
           })}
 

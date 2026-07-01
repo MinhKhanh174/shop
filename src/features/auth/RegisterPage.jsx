@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import './AuthPage.css'
-import { ROUTES } from '../../config/routes'
-import { saveRegisteredAccount, setAuthSession } from '../../utils/authStorage'
+import { ROUTES } from '../../constants/routes'
+import { setAuthSession } from '../../utils/authStorage'
+import { bootstrapAuthSession } from '../../utils/authBootstrap'
 import { isValidEmail, requiredMessage, isNonEmpty } from '../../utils/formValidation'
 import { InternationalPhoneInput } from '../../components/phone/InternationalPhoneInput'
 import { isValidE164PhoneNumber, normalizePhoneToE164 } from '../../utils/phoneValidation'
-import { addUser } from '../../services/usersApi'
+import { registerDemoAccount } from '../../services/authApi'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -88,15 +89,33 @@ export default function RegisterPage() {
         username: String(email).trim().toLowerCase().split('@')[0] || String(firstName).trim().toLowerCase(),
       }
 
-      let remoteAccount = null
+      let backendAccount = null
       try {
-        remoteAccount = await addUser(account)
+        backendAccount = await registerDemoAccount(account)
       } catch (error) {
-        console.error(error)
+        const message = error instanceof Error ? error.message : 'Không thể đăng ký tài khoản demo.'
+        toast.error(message)
+        setErrors({ submit: message })
+        return
       }
 
-      saveRegisteredAccount(account)
-      setAuthSession(remoteAccount || account, remoteAccount || {})
+      const authenticatedUser = backendAccount?.user ?? null
+      if (!authenticatedUser) {
+        const message = 'Laravel không trả về thông tin tài khoản sau khi đăng ký.'
+        toast.error(message)
+        setErrors({ submit: message })
+        return
+      }
+
+      setAuthSession(authenticatedUser, {
+        accessToken: backendAccount?.accessToken,
+        refreshToken: backendAccount?.refreshToken,
+      })
+      await bootstrapAuthSession({
+        user: authenticatedUser,
+        accessToken: backendAccount?.accessToken,
+        refreshToken: backendAccount?.refreshToken,
+      })
       toast.success('Đăng ký thành công')
       navigate(getRedirectPath(), { replace: true })
     } finally {

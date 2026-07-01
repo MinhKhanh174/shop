@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Minus, Plus, ShoppingCart, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '../../utils/currency'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { useCartStore } from '../../store/useCartStore'
 import {
   buildProductCode,
@@ -14,6 +14,7 @@ import {
 } from '../../features/product/productDetail.utils'
 import { buildAddToCartSuccessPayload } from '../product/productActionUtils'
 import { AddToCartButton } from './AddToCartButton'
+import { clampQuantity } from '../../utils/quantity'
 
 function getPrimaryProductImage(product, galleryImages) {
   if (galleryImages.length > 0) {
@@ -110,7 +111,8 @@ function ProductQuickViewModalContent({ product, onClose, onAddedToCart }) {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, quantity)
+    const safeQuantity = clampQuantity(quantity, product?.stock ?? null)
+    addToCart(product, safeQuantity)
 
     const selectedColor = colorOptions[selectedColorIndex]?.label
     const selectedStorage = storageOptions[selectedStorageIndex]
@@ -119,7 +121,7 @@ function ProductQuickViewModalContent({ product, onClose, onAddedToCart }) {
     onClose?.()
     onAddedToCart?.(
       buildAddToCartSuccessPayload(product, {
-        quantity,
+        quantity: safeQuantity,
         variant: variant || product.label || '',
         image: primaryImage ?? product.image ?? null,
       }),

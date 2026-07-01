@@ -1,9 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, ChevronDown, LoaderCircle, LogOut, User } from 'lucide-react'
+import {
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  Clock3,
+  ChevronDown,
+  HelpCircle,
+  LoaderCircle,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Printer,
+  Truck,
+  User,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import logoSrc from '../../assets/logo.webp'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { coupons } from '../../data/siteConfig'
 import { InternationalPhoneInput } from '../../components/phone/InternationalPhoneInput'
 import { useCart } from '../../hooks/useCart'
@@ -12,9 +26,14 @@ import { formatCurrency } from '../../utils/currency'
 import { loadAddresses } from '../../utils/addressStorage'
 import { isValidEmail, isNonEmpty, requiredMessage } from '../../utils/formValidation'
 import { isValidE164PhoneNumber, normalizePhoneToE164 } from '../../utils/phoneValidation'
+import { createCheckoutOrder } from '../../utils/orderFactory'
+import { saveTempOrder } from '../../utils/orderStorage'
+import { sendOrderEmail } from '../../services/mailService'
 import { useCartStore } from '../../store/useCartStore'
-import { saveOrder } from '../../services/orderApi'
+import { persistCartToBackend } from '../../services/cartService'
+import { removeItem } from '../../storage/localStorage'
 import { clearAuthSession, getAuthUser, hasAuthSession } from '../../utils/authStorage'
+import { getCartStorageKey } from '../../services/cartService'
 import './CheckoutPage.css'
 
 const PAYMENT_OPTIONS = [
@@ -365,7 +384,7 @@ function getCouponDiscountAmount(code, subtotal, shippingFee = 0) {
   }
 }
 
-function buildCheckoutErrors(values) {
+function buildCheckoutErrors(values, cartItems = []) {
   const nextErrors = {}
 
   if (!isNonEmpty(values.email)) {
@@ -400,30 +419,152 @@ function buildCheckoutErrors(values) {
     nextErrors.wardCode = requiredMessage('phường/xã')
   }
 
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    nextErrors.cart = 'Giá» hĂ ng pháº£i cĂ³ Ă­t nháº¥t 1 sáº£n pháº©m.'
+  }
+
   return nextErrors
 }
 
-function CheckoutSuccess({ order, onContinueShopping }) {
+function CheckoutSuccessModern({ order, onContinueShopping }) {
+  const items = Array.isArray(order?.items) ? order.items : []
+  const subtotal = typeof order?.subtotal === 'number' ? order.subtotal : 0
+  const shippingFee = typeof order?.shippingFee === 'number' ? order.shippingFee : 0
+  const grandTotal = typeof order?.grandTotal === 'number' ? order.grandTotal : subtotal + shippingFee
+
+  const deliveryWindow = (() => {
+    const baseDate = order?.createdAt ? new Date(order.createdAt) : new Date()
+    const validBaseDate = Number.isNaN(baseDate.getTime()) ? new Date() : baseDate
+    const startDate = new Date(validBaseDate)
+    const endDate = new Date(validBaseDate)
+
+    startDate.setDate(startDate.getDate() + 2)
+    endDate.setDate(endDate.getDate() + 4)
+
+    const startDay = startDate.getDate()
+    const endDay = endDate.getDate()
+    const monthLabel = startDate.getMonth() + 1
+
+    return `${startDay} - ${endDay} Tháng ${monthLabel}`
+  })()
+
+  const addressLabel = [
+    order?.customer?.address,
+    order?.customer?.wardName,
+    order?.customer?.districtName,
+    order?.customer?.provinceName,
+  ]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <div className="checkout-page checkout-page--success">
-      <div className="checkout-page__success-card">
-        <h1>Đặt hàng thành công</h1>
-        <p>
-          Mã đơn hàng: <strong>{order.id}</strong>
-        </p>
-        <p>
-          Tổng thanh toán: <strong>{formatCurrency(order.grandTotal)}</strong>
-        </p>
-        <p>Chúng tôi đã ghi nhận đơn hàng và lưu lại tạm thời trên thiết bị này.</p>
-
-        <div className="checkout-page__success-actions">
-          <button type="button" className="checkout-page__place-order" onClick={onContinueShopping}>
-            Tiếp tục mua sắm
-          </button>
-          <Link to={ROUTES.ACCOUNT_ORDERS} className="checkout-page__back-cart">
-            Xem đơn hàng của tôi
-          </Link>
+      <div className="checkout-page__success-shell">
+        <div className="checkout-page__success-hero">
+          <div className="checkout-page__success-badge" aria-hidden="true">
+            <CheckCircle2 size={30} strokeWidth={2.6} />
+          </div>
+          <h1>Cảm ơn bạn đã đặt hàng!</h1>
+          <p className="checkout-page__success-order-id">
+            Mã đơn hàng của bạn là <strong>#{order?.id ?? '---'}</strong>
+          </p>
+          <p className="checkout-page__success-note">
+            Chúng tôi đã gửi email xác nhận kèm thông tin chi tiết đơn hàng đến bạn.
+          </p>
         </div>
+
+        <div className="checkout-page__success-grid">
+          <div className="checkout-page__success-column checkout-page__success-column--left">
+            <section className="checkout-page__success-card checkout-page__success-card--order">
+              <h2>Chi tiết đơn hàng</h2>
+              <div className="checkout-page__success-items">
+                {items.map((item) => {
+                  const quantity = Number(item.quantity) || 1
+                  const itemTotal = (Number(item.price) || 0) * quantity
+
+                  return (
+                    <article key={item.id} className="checkout-page__success-item">
+                      <div className="checkout-page__success-thumb">
+                        {item.image ? <img src={item.image} alt={item.name} /> : null}
+                      </div>
+                      <div className="checkout-page__success-item-body">
+                        <h3>{item.name}</h3>
+                        <p>Số lượng: {String(quantity).padStart(2, '0')}</p>
+                      </div>
+                      <div className="checkout-page__success-item-price">{formatCurrency(itemTotal)}</div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section className="checkout-page__success-card checkout-page__success-card--summary">
+              <h2>Tổng cộng</h2>
+              <div className="checkout-page__success-summary-row">
+                <span>Tạm tính:</span>
+                <strong>{formatCurrency(subtotal)}</strong>
+              </div>
+              <div className="checkout-page__success-summary-row">
+                <span>Phí vận chuyển:</span>
+                <strong className="is-free">{shippingFee <= 0 ? 'Miễn phí' : formatCurrency(shippingFee)}</strong>
+              </div>
+              <div className="checkout-page__success-summary-total">
+                <span>Tổng số tiền:</span>
+                <strong>{formatCurrency(grandTotal)}</strong>
+              </div>
+            </section>
+          </div>
+
+          <aside className="checkout-page__success-column checkout-page__success-column--right">
+            <section className="checkout-page__success-card checkout-page__success-card--info">
+              <div className="checkout-page__success-card-head">
+                <Truck size={16} strokeWidth={2.3} />
+                <h2>Giao hàng dự kiến</h2>
+              </div>
+              <div className="checkout-page__success-eta">{deliveryWindow}</div>
+              <p className="checkout-page__success-subtext">Giao hàng nhanh bởi TechMart Express</p>
+            </section>
+
+            <section className="checkout-page__success-card checkout-page__success-card--address">
+              <div className="checkout-page__success-card-head">
+                <MapPin size={16} strokeWidth={2.3} />
+                <h2>Địa chỉ nhận hàng</h2>
+              </div>
+              <p className="checkout-page__success-recipient">{order?.customer?.fullName || '---'}</p>
+              <p className="checkout-page__success-phone">{order?.customer?.phone || '---'}</p>
+              <p className="checkout-page__success-address">{addressLabel || '---'}</p>
+            </section>
+
+            <button type="button" className="checkout-page__success-cta" onClick={onContinueShopping}>
+              Tiếp tục mua sắm
+              <ArrowRight size={18} strokeWidth={2.4} />
+            </button>
+
+            <button type="button" className="checkout-page__success-print">
+              <Printer size={16} strokeWidth={2.2} />
+              In hóa đơn
+            </button>
+          </aside>
+        </div>
+
+        <section className="checkout-page__success-support">
+          <p>Cần hỗ trợ về đơn hàng?</p>
+          <div className="checkout-page__success-support-links">
+            <a href="tel:19001000">
+              <HelpCircle size={14} strokeWidth={2.2} />
+              Trung tâm trợ giúp
+            </a>
+            <a href="https://zalo.me" target="_blank" rel="noreferrer">
+              <MessageCircle size={14} strokeWidth={2.2} />
+              Chat với nhân viên
+            </a>
+            <Link to={ROUTES.ACCOUNT_ORDERS}>
+              <Clock3 size={14} strokeWidth={2.2} />
+              Theo dõi đơn hàng
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   )
@@ -438,19 +579,12 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState('')
   const [appliedCouponCode, setAppliedCouponCode] = useState('')
   const [couponError, setCouponError] = useState('')
-  const [formValues, setFormValues] = useState(() => (hasAuthSession() ? buildCheckoutProfile(getAuthUser()) : INITIAL_FORM))
+  const [formValues, setFormValues] = useState(INITIAL_FORM)
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [placedOrder, setPlacedOrder] = useState(null)
-  const [selectedAddressId, setSelectedAddressId] = useState(() => {
-    if (!hasAuthSession()) {
-      return 'manual'
-    }
-
-    const currentAddresses = loadAddresses(getAuthUser())
-    return currentAddresses.find((address) => address.defaultAddress)?.id ?? currentAddresses[0]?.id ?? 'manual'
-  })
+  const [selectedAddressId, setSelectedAddressId] = useState('manual')
   const [provinceOptions, setProvinceOptions] = useState([])
   const [districtOptions, setDistrictOptions] = useState([])
   const [wardOptions, setWardOptions] = useState([])
@@ -474,8 +608,6 @@ export default function CheckoutPage() {
   const addressBookDropdownRef = useRef(null)
   const hasCouponCode = couponCode.trim().length > 0
   const isAuthenticated = Boolean(authUser && hasAuthSession())
-  const isManualAddressMode = !isAuthenticated || selectedAddressId === 'manual'
-
   const orderSubtotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0),
     [cartItems],
@@ -537,14 +669,10 @@ export default function CheckoutPage() {
 
       if (nextIsAuthenticated) {
         const nextAddresses = loadAddresses(nextUser)
-        const defaultAddress = nextAddresses.find((address) => address.defaultAddress) ?? nextAddresses[0] ?? null
 
         setSavedAddresses(nextAddresses)
-        setSelectedAddressId(defaultAddress?.id ?? 'manual')
-        setFormValues((current) => ({
-          ...(defaultAddress ? buildCheckoutProfileFromSavedAddress(defaultAddress, nextUser) : INITIAL_FORM),
-          note: current.note ?? '',
-        }))
+        setSelectedAddressId('manual')
+        setFormValues(INITIAL_FORM)
         setFieldErrors({})
         return
       }
@@ -684,53 +812,63 @@ export default function CheckoutPage() {
   ])
 
   const handlePlaceOrder = async () => {
-    const nextErrors = buildCheckoutErrors(formValues)
+    const nextErrors = buildCheckoutErrors(formValues, cartItems)
     setFieldErrors(nextErrors)
-    setSubmitError('')
+    setSubmitError(nextErrors.cart ?? '')
 
     if (Object.keys(nextErrors).length > 0) {
-      setSubmitError('Vui lòng kiểm tra lại thông tin nhận hàng.')
+      if (!nextErrors.cart) {
+        setSubmitError('Vui lòng kiểm tra lại thông tin nhận hàng.')
+      }
       return
     }
+
+    const tempOrder = createCheckoutOrder({
+      customer: {
+        email: String(formValues.email).trim(),
+        fullName: String(formValues.fullName).trim(),
+        phone: normalizePhoneToE164(formValues.phone),
+        address: String(formValues.address).trim(),
+        provinceCode: String(formValues.provinceCode).trim(),
+        provinceName: String(formValues.provinceName).trim(),
+        districtCode: String(formValues.districtCode).trim(),
+        districtName: String(formValues.districtName).trim(),
+        wardCode: String(formValues.wardCode).trim(),
+        wardName: String(formValues.wardName).trim(),
+        province: String(formValues.provinceName).trim(),
+        district: String(formValues.districtName).trim(),
+        ward: String(formValues.wardName).trim(),
+        note: String(formValues.note).trim(),
+      },
+      paymentMethod: PAYMENT_OPTIONS.find((option) => option.id === selectedPayment)?.label ?? selectedPayment,
+      couponCode: appliedCouponCode,
+      subtotal: orderSubtotal,
+      shippingFee,
+      discount: couponDiscount,
+      grandTotal,
+      items: orderItems,
+      status: 'pending',
+    })
 
     setIsSubmitting(true)
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, 700))
 
-      const order = saveOrder({
-        customer: {
-          email: String(formValues.email).trim(),
-          fullName: String(formValues.fullName).trim(),
-          phone: normalizePhoneToE164(formValues.phone),
-          address: String(formValues.address).trim(),
-          provinceCode: String(formValues.provinceCode).trim(),
-          provinceName: String(formValues.provinceName).trim(),
-          districtCode: String(formValues.districtCode).trim(),
-          districtName: String(formValues.districtName).trim(),
-          wardCode: String(formValues.wardCode).trim(),
-          wardName: String(formValues.wardName).trim(),
-          province: String(formValues.provinceName).trim(),
-          district: String(formValues.districtName).trim(),
-          ward: String(formValues.wardName).trim(),
-          note: String(formValues.note).trim(),
-        },
-        paymentMethod: PAYMENT_OPTIONS.find((option) => option.id === selectedPayment)?.label ?? selectedPayment,
-        couponCode: appliedCouponCode,
-        subtotal: orderSubtotal,
-        shippingFee,
-        discount: couponDiscount,
-        grandTotal,
-        items: orderItems,
-      })
+      const order = saveTempOrder(tempOrder)
+      await sendOrderEmail(order)
 
+      const currentUser = getAuthUser()
+      await persistCartToBackend(currentUser, [])
       clearCart()
+      removeItem(getCartStorageKey(currentUser))
       setPlacedOrder(order)
-      toast.success(`Đặt hàng thành công: ${order.id}`)
+      toast.success(`Gửi mail và đặt hàng thành công: ${order.id}`)
     } catch (error) {
       console.error(error)
-      setSubmitError('Không thể ghi nhận đơn hàng. Vui lòng thử lại.')
-      toast.error('Không thể đặt hàng lúc này.')
+      const errorMessage = error instanceof Error && error.message ? error.message : 'Không thể gửi mail xác nhận. Vui lòng thử lại.'
+      setSubmitError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -840,7 +978,7 @@ export default function CheckoutPage() {
   }
 
   if (placedOrder) {
-    return <CheckoutSuccess order={placedOrder} onContinueShopping={() => window.location.assign(ROUTES.PRODUCTS)} />
+    return <CheckoutSuccessModern order={placedOrder} onContinueShopping={() => window.location.assign(ROUTES.PRODUCTS)} />
   }
 
   if (cartItems.length === 0) {
@@ -896,7 +1034,7 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="checkout-page__form">
+            <div className="checkout-page__form" key={selectedAddressId}>
               {isAuthenticated ? (
                 <AddressBookDropdown
                   addresses={savedAddresses}
@@ -949,7 +1087,7 @@ export default function CheckoutPage() {
                 type="email"
                 hideLabel
                 value={formValues.email}
-                readOnly={isAuthenticated && !isManualAddressMode}
+                readOnly={false}
                 onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
                 error={fieldErrors.email}
               />
@@ -959,7 +1097,7 @@ export default function CheckoutPage() {
                 placeholder="Họ và tên"
                 hideLabel
                 value={formValues.fullName}
-                readOnly={isAuthenticated && !isManualAddressMode}
+                readOnly={false}
                 onChange={(event) => setFormValues((current) => ({ ...current, fullName: event.target.value }))}
                 error={fieldErrors.fullName}
               />
@@ -970,7 +1108,7 @@ export default function CheckoutPage() {
                   id="checkout-phone"
                   variant="checkout"
                   value={formValues.phone}
-                  readOnly={isAuthenticated && !isManualAddressMode}
+                  readOnly={false}
                   onChange={(nextPhone) =>
                     setFormValues((current) => ({
                       ...current,
@@ -987,7 +1125,7 @@ export default function CheckoutPage() {
                 placeholder="Địa chỉ"
                 hideLabel
                 value={formValues.address}
-                readOnly={isAuthenticated && !isManualAddressMode}
+                readOnly={false}
                 onChange={(event) => setFormValues((current) => ({ ...current, address: event.target.value }))}
                 error={fieldErrors.address}
               />
@@ -998,7 +1136,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={provinceDisplayLabel}
                 error={fieldErrors.provinceCode}
-                disabled={isAuthenticated && !isManualAddressMode}
+                disabled={false}
                 isOpen={activeDropdown === 'province'}
                 loading={provinceLoading}
                 fetchError={provinceFetchError}
@@ -1023,7 +1161,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={districtDisplayLabel}
                 error={fieldErrors.districtCode}
-                disabled={!formValues.provinceCode || (isAuthenticated && !isManualAddressMode)}
+                disabled={!formValues.provinceCode}
                 isOpen={activeDropdown === 'district'}
                 loading={districtLoading}
                 fetchError={districtFetchError}
@@ -1048,7 +1186,7 @@ export default function CheckoutPage() {
                 hideLabel
                 valueLabel={wardDisplayLabel}
                 error={fieldErrors.wardCode}
-                disabled={!formValues.districtCode || (isAuthenticated && !isManualAddressMode)}
+                disabled={!formValues.districtCode}
                 isOpen={activeDropdown === 'ward'}
                 loading={wardLoading}
                 fetchError={wardFetchError}
@@ -1174,3 +1312,4 @@ export default function CheckoutPage() {
     </div>
   )
 }
+

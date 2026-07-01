@@ -921,6 +921,327 @@
   font-weight: 700;
 }
 
+.checkout-page--success {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10px 18px 28px;
+  background: #fafafa;
+}
+
+.checkout-page__success-shell {
+  width: min(100%, 492px);
+  display: grid;
+  gap: 14px;
+  justify-items: stretch;
+}
+
+.checkout-page__success-hero {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 0 10px 2px;
+}
+
+.checkout-page__success-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: #ddf8e5;
+  color: #18a957;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-page__success-hero h1 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #111;
+}
+
+.checkout-page__success-order-id {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.checkout-page__success-order-id strong {
+  color: #e11d1d;
+  font-weight: 700;
+}
+
+.checkout-page__success-note {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #7a7f88;
+}
+
+.checkout-page__success-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 14px;
+  align-items: start;
+}
+
+.checkout-page__success-column {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.checkout-page__success-column--left {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.checkout-page__success-card {
+  border: 1px solid #efcfc7;
+  border-radius: 6px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.checkout-page__success-card h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #111;
+}
+
+.checkout-page__success-card--order {
+  padding: 14px 14px 10px;
+}
+
+.checkout-page__success-items {
+  display: grid;
+  gap: 14px;
+}
+
+.checkout-page__success-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.checkout-page__success-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.checkout-page__success-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #ebebeb 100%);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.checkout-page__success-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-page__success-item-body {
+  min-width: 0;
+}
+
+.checkout-page__success-item-body h3 {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: #151515;
+}
+
+.checkout-page__success-item-body p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #7f8691;
+}
+
+.checkout-page__success-item-price {
+  color: #111;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.checkout-page__success-card--summary {
+  padding: 14px;
+}
+
+.checkout-page__success-summary-row,
+.checkout-page__success-summary-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checkout-page__success-summary-row {
+  margin-top: 12px;
+}
+
+.checkout-page__success-summary-row span,
+.checkout-page__success-summary-row strong {
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 400;
+  color: #6f7680;
+}
+
+.checkout-page__success-summary-row strong.is-free {
+  color: #18a957;
+}
+
+.checkout-page__success-summary-total {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1d3cd;
+}
+
+.checkout-page__success-summary-total span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #111;
+  font-weight: 600;
+}
+
+.checkout-page__success-summary-total strong {
+  color: #ef1f1f;
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.checkout-page__success-card--info,
+.checkout-page__success-card--address {
+  padding: 14px 12px 12px;
+}
+
+.checkout-page__success-card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: #ef1f1f;
+}
+
+.checkout-page__success-card-head h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111;
+}
+
+.checkout-page__success-eta {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #ef1f1f;
+}
+
+.checkout-page__success-subtext,
+.checkout-page__success-recipient,
+.checkout-page__success-phone,
+.checkout-page__success-address {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: #7a7f88;
+}
+
+.checkout-page__success-recipient {
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 3px;
+}
+
+.checkout-page__success-phone {
+  margin-bottom: 4px;
+}
+
+.checkout-page__success-cta {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  border-radius: 4px;
+  background: #ef1f1f;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.checkout-page__success-print {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #ef1f1f;
+  border-radius: 4px;
+  background: #fff;
+  color: #ef1f1f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkout-page__success-support {
+  border: 1px solid #f1ddd6;
+  border-radius: 12px;
+  background: #fffaf8;
+  padding: 14px 12px 16px;
+  text-align: center;
+}
+
+.checkout-page__success-support > p {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #a39da0;
+}
+
+.checkout-page__success-support-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.checkout-page__success-support-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #ef1f1f;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
 @media (max-width: 1180px) {
   .checkout-page__layout {
     grid-template-columns: 1fr;
@@ -932,6 +1253,20 @@
     padding-top: 0;
     border-left: 0;
     padding-left: 0;
+  }
+
+  .checkout-page--success {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .checkout-page__success-shell {
+    width: 100%;
+    max-width: 492px;
+  }
+
+  .checkout-page__success-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -981,5 +1316,13 @@
 
   .checkout-page__coupon button {
     height: 48px;
+  }
+
+  .checkout-page__success-hero h1 {
+    font-size: 20px;
+  }
+
+  .checkout-page__success-grid {
+    gap: 12px;
   }
 }

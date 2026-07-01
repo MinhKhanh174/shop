@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import AccountLayout from './AccountLayout'
 import './account.css'
-import { ROUTES } from '../../config/routes'
-import { getAuthUser, getRegisteredAccount, saveRegisteredAccount, setAuthSession } from '../../utils/authStorage'
+import { ROUTES } from '../../constants/routes'
+import { getAuthUser } from '../../utils/authStorage'
 import { loadAddresses } from '../../utils/addressStorage'
 import { isNonEmpty } from '../../utils/formValidation'
+import { changePassword as changeAccountPassword } from '../../services/authApi'
 
 export default function AccountPasswordPage() {
   const navigate = useNavigate()
@@ -67,30 +68,13 @@ export default function AccountPasswordPage() {
       return
     }
 
-    const registeredAccount = getRegisteredAccount()
-    if (!registeredAccount) {
-      setErrors({
-        currentPassword: 'Không tìm thấy tài khoản đã đăng ký.',
-      })
-      return
-    }
-
-    const normalizedEmail = String(currentUser?.email || registeredAccount.email || '').trim().toLowerCase()
-    const registeredEmail = String(registeredAccount.email ?? '').trim().toLowerCase()
-    const registeredPassword = String(registeredAccount.password ?? '')
+    const normalizedEmail = String(currentUser?.email ?? '').trim().toLowerCase()
     const currentPassword = String(formValues.currentPassword).trim()
     const nextPassword = String(formValues.newPassword).trim()
 
-    if (normalizedEmail && registeredEmail && normalizedEmail !== registeredEmail) {
+    if (!normalizedEmail) {
       setErrors({
-        currentPassword: 'Tài khoản hiện tại không khớp với tài khoản đã lưu.',
-      })
-      return
-    }
-
-    if (currentPassword !== registeredPassword) {
-      setErrors({
-        currentPassword: 'Mật khẩu cũ không đúng.',
+        currentPassword: 'Không tìm thấy tài khoản đang đăng nhập.',
       })
       return
     }
@@ -98,20 +82,26 @@ export default function AccountPasswordPage() {
     setIsSubmitting(true)
 
     try {
-      const updatedAccount = {
-        ...registeredAccount,
-        password: nextPassword,
+      try {
+        await changeAccountPassword({
+          email: normalizedEmail,
+          currentPassword,
+          newPassword: nextPassword,
+          confirmPassword: String(formValues.confirmPassword).trim(),
+        })
+        toast.success('Đổi mật khẩu thành công')
+        setFormValues({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        })
+        navigate(ROUTES.ACCOUNT, { replace: true })
+      } catch (error) {
+        const message = error instanceof Error && error.message ? error.message : 'Không thể đổi mật khẩu.'
+        setErrors({
+          currentPassword: message,
+        })
       }
-
-      saveRegisteredAccount(updatedAccount)
-      setAuthSession(updatedAccount)
-      toast.success('Đổi mật khẩu thành công')
-      setFormValues({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      })
-      navigate(ROUTES.ACCOUNT, { replace: true })
     } finally {
       setIsSubmitting(false)
     }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { buildSearchPath } from '../../config/routes'
+import { buildSearchPath } from '../../constants/routes'
 import { useProductSearchResults } from '../../features/product/hooks/useProductSearchResults'
 import { getProductDetailPath } from '../../utils/productRoutes'
 

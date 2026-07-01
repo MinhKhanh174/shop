@@ -1,6 +1,7 @@
 import { getItem, removeItem, setItem } from '../storage/localStorage.js'
 import { getAuthUser } from '../utils/authStorage'
 import { mapApiProductToCard } from '../utils/productMapper.js'
+import { fetchSharedWishlist, saveSharedWishlist } from './accountDataApi'
 
 const WISHLIST_KEY_PREFIX = 'techstore_wishlist_'
 const PENDING_WISHLIST_KEY = 'techstore_wishlist_pending'
@@ -40,6 +41,10 @@ function getUserScope(user) {
 
 export function getWishlistStorageKey(user = getAuthUser()) {
   return `${WISHLIST_KEY_PREFIX}${getUserScope(user)}`
+}
+
+export function getPendingWishlistStorageKey() {
+  return PENDING_WISHLIST_KEY
 }
 
 export function normalizeWishlistProduct(product, index = 0) {
@@ -118,18 +123,33 @@ function normalizeWishlistItems(items) {
 }
 
 export function loadWishlist(user = getAuthUser()) {
+  if (!user) {
+    return normalizeWishlistItems(getItem(getPendingWishlistStorageKey(), []))
+  }
+
   const storedItems = getItem(getWishlistStorageKey(user), [])
   return normalizeWishlistItems(storedItems)
 }
 
 export function saveWishlist(items, user = getAuthUser()) {
   const normalizedItems = normalizeWishlistItems(items)
+  const userEmail = String(user?.email ?? '').trim().toLowerCase()
+
+  if (!userEmail) {
+    setItem(getPendingWishlistStorageKey(), normalizedItems)
+    return normalizedItems
+  }
+
   setItem(getWishlistStorageKey(user), normalizedItems)
+  void saveSharedWishlist(userEmail, normalizedItems).catch((error) => {
+    console.error('wishlistService saveSharedWishlist failed', error)
+  })
+
   return normalizedItems
 }
 
 export function queuePendingWishlistProduct(product) {
-  const pendingItems = getItem(PENDING_WISHLIST_KEY, [])
+  const pendingItems = getItem(getPendingWishlistStorageKey(), [])
   const normalizedProduct = normalizeWishlistProduct(product)
 
   if (!normalizedProduct) {
@@ -137,26 +157,47 @@ export function queuePendingWishlistProduct(product) {
   }
 
   const nextItems = normalizeWishlistItems([normalizedProduct, ...pendingItems])
-  setItem(PENDING_WISHLIST_KEY, nextItems)
+  setItem(getPendingWishlistStorageKey(), nextItems)
   return nextItems
 }
 
 export function consumePendingWishlistProducts() {
-  const pendingItems = normalizeWishlistItems(getItem(PENDING_WISHLIST_KEY, []))
-  removeItem(PENDING_WISHLIST_KEY)
+  const pendingItems = normalizeWishlistItems(getItem(getPendingWishlistStorageKey(), []))
+  removeItem(getPendingWishlistStorageKey())
   return pendingItems
 }
 
-export function resolveWishlistForUser(user = getAuthUser()) {
-  const currentItems = loadWishlist(user)
-
+export async function resolveWishlistForUser(user = getAuthUser()) {
   if (!user) {
-    return currentItems
+    return loadWishlist(null)
   }
 
-  const pendingItems = consumePendingWishlistProducts()
-  const mergedItems = normalizeWishlistItems([...pendingItems, ...currentItems])
-  saveWishlist(mergedItems, user)
+  const userEmail = String(user?.email ?? '').trim().toLowerCase()
+  const currentItems = loadWishlist(user)
+  let remoteItems = null
 
-  return mergedItems
+  if (userEmail) {
+    try {
+      remoteItems = await fetchSharedWishlist(userEmail)
+    } catch (error) {
+      console.error('wishlistService fetchSharedWishlist failed', error)
+    }
+  }
+
+  const nextItems = Array.isArray(remoteItems) ? normalizeWishlistItems(remoteItems) : currentItems
+  setItem(getWishlistStorageKey(user), nextItems)
+
+  return nextItems
+}
+
+export async function persistWishlistToBackend(user = getAuthUser(), items = []) {
+  const normalizedItems = normalizeWishlistItems(items)
+  const userEmail = String(user?.email ?? '').trim().toLowerCase()
+
+  if (!userEmail) {
+    return normalizedItems
+  }
+
+  await saveSharedWishlist(userEmail, normalizedItems)
+  return normalizedItems
 }

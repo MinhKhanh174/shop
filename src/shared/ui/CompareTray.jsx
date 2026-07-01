@@ -1,6 +1,6 @@
 import { ChevronRight, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import { useCompareStore } from '../../store/useCompareStore'
 
 export function CompareTray() {

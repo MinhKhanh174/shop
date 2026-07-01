@@ -2,10 +2,14 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import './AuthPage.css'
-import { ROUTES } from '../../config/routes'
-import { getRegisteredAccount, setAuthSession } from '../../utils/authStorage'
+import { ROUTES } from '../../constants/routes'
+import {
+  clearDemoResetPassword,
+  setAuthSession,
+} from '../../utils/authStorage'
+import { bootstrapAuthSession } from '../../utils/authBootstrap'
 import { isValidEmail, requiredMessage, isNonEmpty } from '../../utils/formValidation'
-import { loginUser } from '../../services/usersApi'
+import { login as loginWithLaravel } from '../../services/authApi'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -62,44 +66,35 @@ export default function LoginPage() {
     try {
       const normalizedEmail = String(email).trim().toLowerCase()
       const normalizedPassword = String(password).trim()
-
-      let authenticatedUser = null
-
       try {
-        authenticatedUser = await loginUser({
-          email: normalizedEmail,
-          password: normalizedPassword,
-        })
-      } catch (error) {
-        console.error(error)
-      }
+        const loginResponse = await loginWithLaravel(normalizedEmail, normalizedPassword)
+        const authenticatedUser = loginResponse?.user ?? null
 
-      if (!authenticatedUser) {
-        const registeredAccount = getRegisteredAccount()
-
-        if (registeredAccount) {
-          const registeredEmail = String(registeredAccount.email ?? '').trim().toLowerCase()
-          const registeredPassword = String(registeredAccount.password ?? '')
-
-          if (normalizedEmail !== registeredEmail || normalizedPassword !== registeredPassword) {
-            setErrors({
-              password: 'Email hoặc mật khẩu không đúng.',
-            })
-            return
-          }
-
-          authenticatedUser = registeredAccount
-        } else {
+        if (!authenticatedUser) {
           setErrors({
             password: 'Email hoặc mật khẩu không đúng.',
           })
           return
         }
-      }
 
-      setAuthSession(authenticatedUser, authenticatedUser)
-      toast.success('Đăng nhập thành công')
-      navigate(getRedirectPath(), { replace: true })
+        setAuthSession(authenticatedUser, {
+          accessToken: loginResponse?.accessToken,
+          refreshToken: loginResponse?.refreshToken,
+        })
+        await bootstrapAuthSession({
+          user: authenticatedUser,
+          accessToken: loginResponse?.accessToken,
+          refreshToken: loginResponse?.refreshToken,
+        })
+        clearDemoResetPassword(normalizedEmail)
+        toast.success('Đăng nhập thành công')
+        navigate(getRedirectPath(), { replace: true })
+      } catch (error) {
+        const message = error instanceof Error && error.message ? error.message : 'Email hoặc mật khẩu không đúng.'
+        setErrors({
+          password: message,
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -159,9 +154,9 @@ export default function LoginPage() {
               {errors.password ? <p className="auth-page__error">{errors.password}</p> : null}
             </div>
 
-            <button type="button" className="auth-page__forgot">
-              Quên mật khẩu? Nhấn vào <span className="auth-page__forgot-link">đây</span>
-            </button>
+            <Link to={ROUTES.FORGOT_PASSWORD} className="auth-page__forgot">
+              Quên mật khẩu?
+            </Link>
 
             <button type="submit" className="auth-page__submit" disabled={isSubmitting}>
               {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}

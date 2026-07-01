@@ -1,6 +1,6 @@
 import { ChevronRight, CheckCircle2, CircleHelp } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { ROUTES } from '../../config/routes'
+import { ROUTES } from '../../constants/routes'
 import './GuidePage.css'
 
 const GUIDE_CONTENT = {
