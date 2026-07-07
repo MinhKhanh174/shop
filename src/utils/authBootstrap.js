@@ -29,6 +29,7 @@ function mergeAuthUsers(primaryUser, remoteUser) {
     phone: normalizeText(primaryUser.phone) || normalizeText(remoteUser.phone),
     email: normalizeText(primaryUser.email) || normalizeText(remoteUser.email),
     avatar: normalizeText(primaryUser.avatar) || normalizeText(remoteUser.avatar),
+    role: normalizeText(primaryUser.role) === 'admin' || normalizeText(remoteUser.role) === 'admin' ? 'admin' : 'customer',
     company: primaryUser.company ?? remoteUser.company ?? null,
     address: primaryUser.address ?? remoteUser.address ?? null,
     accessToken: normalizeText(primaryUser.accessToken) || normalizeText(remoteUser.accessToken),

@@ -68,7 +68,7 @@ export function AddToCartSuccessModal({ open, item, cartTotalText, cartCountText
           <div className="add-to-cart-success-modal__summary">
             <div className="add-to-cart-success-modal__summary-label">Theo số lượng đã chọn</div>
             <div className="add-to-cart-success-modal__summary-values">
-              <strong>{item.lineTotalText ?? ''}</strong>
+              <strong>{item.lineTotalText ?? cartTotalText ?? ''}</strong>
               <span>{item.quantity ? `${item.quantity} sản phẩm` : cartCountText}</span>
             </div>
           </div>

@@ -30,4 +30,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'demo_auth' => [
+        // Demo credentials are for local/demo only. Do not enable in production.
+        'enabled' => env('DEMO_AUTH_ENABLED', env('APP_ENV', 'production') !== 'production'),
+        'admin_email' => env('DEMO_AUTH_ADMIN_EMAIL', 'admin@techstore.test'),
+        'admin_password' => env('DEMO_AUTH_ADMIN_PASSWORD', '123456'),
+    ],
+
 ];

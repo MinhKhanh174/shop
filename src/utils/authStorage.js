@@ -6,6 +6,44 @@ const AUTH_SESSION_COOKIE_KEY = 'techstore_auth_session'
 const REGISTERED_ACCOUNT_KEY = 'techstore_registered_account'
 const demoResetPasswordCache = {}
 
+export const AUTH_ROLES = {
+  ADMIN: 'admin',
+  CUSTOMER: 'customer',
+}
+
+export function normalizeRole(value) {
+  return String(value ?? '').trim().toLowerCase() === 'admin' ? 'admin' : 'customer'
+}
+
+export function isAdminRole(value) {
+  return normalizeRole(value) === AUTH_ROLES.ADMIN
+}
+
+export function isAdminUser(user) {
+  return isAdminRole(user?.role)
+}
+
+function normalizeAuthUser(user) {
+  if (!user || typeof user !== 'object') {
+    return null
+  }
+
+  return {
+    id: user.id ?? null,
+    username: String(user.username ?? '').trim(),
+    firstName: String(user.firstName ?? '').trim(),
+    lastName: String(user.lastName ?? '').trim(),
+    phone: String(user.phone ?? '').trim(),
+    email: String(user.email ?? '').trim().toLowerCase(),
+    avatar: String(user.avatar ?? user.image ?? '').trim(),
+    role: normalizeRole(user.role),
+    company: user.company ? { ...user.company } : null,
+    address: user.address ? { ...user.address } : null,
+    accessToken: String(user.accessToken ?? '').trim(),
+    refreshToken: String(user.refreshToken ?? '').trim(),
+  }
+}
+
 function readJson(key, fallback = null) {
   if (typeof window === 'undefined') {
     return fallback
@@ -51,7 +89,7 @@ function readCookieAuthSession() {
     return null
   }
 
-  const user = cookieSession.user && typeof cookieSession.user === 'object' ? cookieSession.user : null
+  const user = normalizeAuthUser(cookieSession.user)
   const authToken = String(cookieSession.authToken ?? '').trim()
 
   if (!user || !authToken) {
@@ -164,19 +202,14 @@ export function hasAuthSession() {
 }
 
 export function setAuthSession(user, tokens = {}) {
-  const normalizedUser = {
-    id: user?.id,
-    username: String(user?.username ?? '').trim(),
-    firstName: String(user?.firstName ?? '').trim(),
-    lastName: String(user?.lastName ?? '').trim(),
-    phone: String(user?.phone ?? '').trim(),
-    email: String(user?.email ?? '').trim().toLowerCase(),
-    avatar: String(user?.avatar ?? user?.image ?? '').trim(),
-    company: user?.company ? { ...user.company } : null,
-    address: user?.address ? { ...user.address } : null,
-    accessToken: String(tokens?.accessToken ?? user?.accessToken ?? '').trim(),
-    refreshToken: String(tokens?.refreshToken ?? user?.refreshToken ?? '').trim(),
+  const normalizedUser = normalizeAuthUser(user)
+
+  if (!normalizedUser) {
+    return
   }
+
+  normalizedUser.accessToken = String(tokens?.accessToken ?? normalizedUser.accessToken ?? '').trim()
+  normalizedUser.refreshToken = String(tokens?.refreshToken ?? normalizedUser.refreshToken ?? '').trim()
 
   const authToken =
     normalizedUser.accessToken ||

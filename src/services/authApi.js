@@ -6,6 +6,10 @@ const authClient = axios.create({
   timeout: 10000,
 })
 
+function normalizeRole(value) {
+  return String(value ?? '').trim().toLowerCase() === 'admin' ? 'admin' : 'customer'
+}
+
 function normalizeEmail(value) {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -24,6 +28,7 @@ function normalizeAuthUser(user) {
     phone: String(user.phone ?? '').trim(),
     email: normalizeEmail(user.email),
     avatar: String(user.avatar ?? user.image ?? '').trim(),
+    role: normalizeRole(user.role),
     company: user.company ? { ...user.company } : null,
     address: user.address ? { ...user.address } : null,
     accessToken: String(user.accessToken ?? '').trim(),

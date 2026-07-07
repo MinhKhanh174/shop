@@ -28,6 +28,13 @@ class PasswordResetController extends Controller
 
     public function forgotPassword(Request $request, DemoAuthStore $demoAuthStore)
     {
+        if (!$demoAuthStore->isEnabled()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $demoAuthStore->disabledMessage(),
+            ], 503);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
@@ -70,6 +77,13 @@ class PasswordResetController extends Controller
 
     public function resetPassword(Request $request, DemoAuthStore $demoAuthStore)
     {
+        if (!$demoAuthStore->isEnabled()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $demoAuthStore->disabledMessage(),
+            ], 503);
+        }
+
         $validated = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],

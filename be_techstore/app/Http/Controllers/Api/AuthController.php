@@ -13,6 +13,13 @@ class AuthController extends Controller
 {
     public function register(Request $request, DemoAuthStore $demoAuthStore, DemoUserDataStore $userDataStore)
     {
+        if (!$demoAuthStore->isEnabled()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $demoAuthStore->disabledMessage(),
+            ], 503);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:6'],
@@ -55,6 +62,13 @@ class AuthController extends Controller
 
     public function login(Request $request, DemoAuthStore $demoAuthStore, DemoUserDataStore $userDataStore)
     {
+        if (!$demoAuthStore->isEnabled()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $demoAuthStore->disabledMessage(),
+            ], 503);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
@@ -94,6 +108,13 @@ class AuthController extends Controller
 
     public function changePassword(Request $request, DemoAuthStore $demoAuthStore)
     {
+        if (!$demoAuthStore->isEnabled()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $demoAuthStore->disabledMessage(),
+            ], 503);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'currentPassword' => ['required', 'string'],
@@ -153,6 +174,7 @@ class AuthController extends Controller
             'phone' => trim((string) ($account['phone'] ?? '')),
             'email' => $email,
             'avatar' => trim((string) ($account['avatar'] ?? '')),
+            'role' => strtolower(trim((string) ($account['role'] ?? ''))) === 'admin' ? 'admin' : 'customer',
             'company' => null,
             'address' => null,
         ];

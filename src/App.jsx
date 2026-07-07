@@ -1,17 +1,10 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { SiteHeader } from './components/layout/SiteHeader'
-import { SubNav } from './components/layout/SubNav'
-import { SiteFooter } from './shared/layout/SiteFooter'
-import { CompareTray } from './shared/ui/CompareTray'
-import { QuickContactButtons } from './shared/ui/QuickContactButtons'
 import { HomeDataProvider } from './context/HomeDataProvider'
 import { ROUTES } from './constants/routes'
 import { hasAuthSession } from './utils/authStorage'
 import { bootstrapAuthSession } from './utils/authBootstrap'
-import { useRouteCategorySync } from './hooks/useRouteCategorySync'
-import { useScrollShadow } from './hooks/useScrollShadow'
 import { getCategoryCollectionPath } from './utils/categoryRoutes'
 import './store/useWishlistStore'
 import './App.css'
@@ -41,6 +34,14 @@ const AccountOrdersPage = lazy(() => import('./features/account/AccountOrdersPag
 const AccountWishlistPage = lazy(() => import('./features/account/AccountWishlistPage'))
 const OrderDetailPage = lazy(() => import('./features/account/OrderDetailPage'))
 const NotFoundPage = lazy(() => import('./shared/ui/NotFoundPage'))
+const StorefrontLayout = lazy(() => import('./shared/layout/StorefrontLayout'))
+const RequireAdmin = lazy(() => import('./admin/routes/RequireAdmin'))
+const AdminLayout = lazy(() => import('./admin/layout/AdminLayout'))
+const AdminDashboardPage = lazy(() => import('./admin/pages/AdminDashboardPage'))
+const AdminProductsPage = lazy(() => import('./admin/pages/AdminProductsPage'))
+const AdminOrdersPage = lazy(() => import('./admin/pages/AdminOrdersPage'))
+const AdminUsersPage = lazy(() => import('./admin/pages/AdminUsersPage'))
+const AdminSettingsPage = lazy(() => import('./admin/pages/AdminSettingsPage'))
 
 function PageLoader() {
   return <div className="page-loader">Đang tải...</div>
@@ -84,6 +85,12 @@ function LegacyBlogDetailRedirect() {
   return <Navigate replace to={ROUTES.BLOG_DETAIL.replace(':articleSlug', encodeURIComponent(articleSlug))} />
 }
 
+function LegacyLoginRedirect() {
+  const location = useLocation()
+
+  return <Navigate replace state={location.state} to={ROUTES.LOGIN} />
+}
+
 function RequireAuth({ children }) {
   const location = useLocation()
 
@@ -94,14 +101,8 @@ function RequireAuth({ children }) {
   return children
 }
 
-function AppShell() {
-  useRouteCategorySync()
-  const location = useLocation()
-  const isScrolled = useScrollShadow()
-  const isCheckoutRoute = location.pathname === ROUTES.CHECKOUT
+function AppRoutes() {
   const [, forceAuthRefresh] = useState(0)
-  const headerRef = useRef(null)
-  const [headerHeight, setHeaderHeight] = useState(0)
 
   useEffect(() => {
     const handleAuthChanged = () => {
@@ -125,163 +126,92 @@ function AppShell() {
     })
   }, [])
 
-  useLayoutEffect(() => {
-    const headerEl = headerRef.current
-    if (!headerEl) return
-
-    const updateHeaderHeight = () => {
-      setHeaderHeight(headerEl.offsetHeight)
-    }
-
-    updateHeaderHeight()
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateHeaderHeight)
-
-      return () => window.removeEventListener('resize', updateHeaderHeight)
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateHeaderHeight()
-    })
-
-    observer.observe(headerEl)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
   return (
-    <div
-      className={`app-shell${isCheckoutRoute ? ' app-shell--checkout' : ''}`}
-      style={{
-        '--site-header-height': `${headerHeight}px`,
-      }}
-    >
+    <>
       <Toaster position="top-right" toastOptions={{ duration: 2500 }} />
       <ScrollToTop />
-      {isCheckoutRoute ? null : (
-        <div ref={headerRef} className="site-header">
-          <SiteHeader isScrolled={isScrolled} />
-        </div>
-      )}
-      {isCheckoutRoute ? null : (
-        <div className="site-subnav">
-          <SubNav />
-        </div>
-      )}
-      <main className={`app-shell__content${isCheckoutRoute ? ' app-shell__content--checkout' : ''}`}>
-        <Suspense fallback={<PageLoader />}>
-          {isCheckoutRoute ? (
-            <Routes>
-              <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
-            </Routes>
-          ) : (
-            <div className="site-container">
-              <Routes>
-                <Route path={ROUTES.HOME} element={<HomePage />} />
-                <Route path={ROUTES.CATEGORY_DETAIL} element={<CategoryPage />} />
-                <Route path={ROUTES.CATEGORIES} element={<Navigate to={getCategoryCollectionPath('featured')} replace />} />
-                <Route path={ROUTES.CATEGORIES_LEGACY} element={<Navigate to={ROUTES.CATEGORIES} replace />} />
-                <Route path={ROUTES.CATEGORY_DETAIL_LEGACY} element={<LegacyCollectionRedirect />} />
-                <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
-                <Route path={ROUTES.PRODUCTS_LEGACY} element={<Navigate to={ROUTES.PRODUCTS} replace />} />
-                <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
-                <Route path={ROUTES.PRODUCT_DETAIL_PRODUCTS_LEGACY} element={<LegacyProductRedirect />} />
-                <Route path={ROUTES.SEARCH} element={<ProductListPage />} />
-                <Route path={ROUTES.SEARCH_LEGACY} element={<LegacySearchRedirect />} />
-                <Route path={ROUTES.BLOG} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
-                <Route path={ROUTES.BLOG_NEWS} element={<NewsPage />} />
-                <Route path={ROUTES.BLOG_TIPS} element={<TipsPage />} />
-                <Route path={ROUTES.BLOG_LEGACY} element={<LegacyBlogRedirect />} />
-                <Route path={ROUTES.BLOG_NEWS_LEGACY} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
-                <Route path={ROUTES.BLOG_TIPS_LEGACY} element={<Navigate to={ROUTES.BLOG_TIPS} replace />} />
-                <Route path={ROUTES.NEWS_LEGACY} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
-                <Route path={ROUTES.TIPS_LEGACY} element={<Navigate to={ROUTES.BLOG_TIPS} replace />} />
-                <Route path={ROUTES.BLOG_DETAIL_LEGACY} element={<LegacyBlogDetailRedirect />} />
-                <Route path={ROUTES.BLOG_DETAIL} element={<BlogDetailPage />} />
-                <Route path={ROUTES.GUIDE_SELL_USED} element={<SellUsedGuidePage />} />
-                <Route path={ROUTES.GUIDE_BUY_ONLINE} element={<BuyOnlineGuidePage />} />
-                <Route path={ROUTES.GUIDE_INSTALLMENT} element={<InstallmentGuidePage />} />
-                <Route path={ROUTES.STORE_SYSTEM} element={<StoreSystemPage />} />
-                <Route path={ROUTES.COMPARE} element={<ComparePage />} />
-                <Route path={ROUTES.COMPARE_LEGACY} element={<Navigate to={ROUTES.COMPARE} replace />} />
-                <Route path={ROUTES.CART} element={<CartPage />} />
-                <Route path={ROUTES.CART_LEGACY} element={<Navigate to={ROUTES.CART} replace />} />
-                <Route
-                  path={ROUTES.ACCOUNT}
-                  element={
-                    <RequireAuth>
-                      <AccountPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path={ROUTES.ACCOUNT_PASSWORD}
-                  element={
-                    <RequireAuth>
-                      <AccountPasswordPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path={ROUTES.ACCOUNT_ADDRESS}
-                  element={
-                    <RequireAuth>
-                      <AccountAddressPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path={ROUTES.ACCOUNT_ORDERS}
-                  element={
-                    <RequireAuth>
-                      <AccountOrdersPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path={ROUTES.ACCOUNT_ORDER_DETAIL}
-                  element={
-                    <RequireAuth>
-                      <OrderDetailPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path={ROUTES.ACCOUNT_WISHLIST}
-                  element={
-                    <RequireAuth>
-                      <AccountWishlistPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route path={ROUTES.ACCOUNT_LEGACY} element={<Navigate to={ROUTES.ACCOUNT} replace />} />
-                <Route path={ROUTES.ACCOUNT_PASSWORD_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_PASSWORD} replace />} />
-                <Route path={ROUTES.ACCOUNT_ADDRESS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ADDRESS} replace />} />
-                <Route path={ROUTES.ACCOUNT_ORDERS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDERS} replace />} />
-                <Route path={ROUTES.ACCOUNT_ORDER_DETAIL_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDER_DETAIL} replace />} />
-                <Route path={ROUTES.ACCOUNT_WISHLIST_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_WISHLIST} replace />} />
-                <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-                <Route path={ROUTES.LOGIN_LEGACY} element={<Navigate to={ROUTES.LOGIN} replace />} />
-                <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-                <Route path={ROUTES.REGISTER_LEGACY} element={<Navigate to={ROUTES.REGISTER} replace />} />
-                <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-                <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
-                <Route path={ROUTES.RESET_PASSWORD_LEGACY} element={<Navigate to={ROUTES.RESET_PASSWORD} replace />} />
-                <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
-                <Route path={ROUTES.CHECKOUT_LEGACY} element={<Navigate to={ROUTES.CHECKOUT} replace />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </div>
-          )}
-        </Suspense>
-      </main>
-      {isCheckoutRoute ? null : <QuickContactButtons />}
-      {isCheckoutRoute ? null : <CompareTray />}
-      {isCheckoutRoute ? null : <SiteFooter />}
-    </div>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<StorefrontLayout />}>
+            <Route path={ROUTES.HOME} element={<HomePage />} />
+            <Route path={ROUTES.CATEGORY_DETAIL} element={<CategoryPage />} />
+            <Route path={ROUTES.CATEGORIES} element={<Navigate to={getCategoryCollectionPath('featured')} replace />} />
+            <Route path={ROUTES.CATEGORIES_LEGACY} element={<Navigate to={ROUTES.CATEGORIES} replace />} />
+            <Route path={ROUTES.CATEGORY_DETAIL_LEGACY} element={<LegacyCollectionRedirect />} />
+            <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
+            <Route path={ROUTES.PRODUCTS_LEGACY} element={<Navigate to={ROUTES.PRODUCTS} replace />} />
+            <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
+            <Route path={ROUTES.PRODUCT_DETAIL_PRODUCTS_LEGACY} element={<LegacyProductRedirect />} />
+            <Route path={ROUTES.SEARCH} element={<ProductListPage />} />
+            <Route path={ROUTES.SEARCH_LEGACY} element={<LegacySearchRedirect />} />
+            <Route path={ROUTES.BLOG} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
+            <Route path={ROUTES.BLOG_NEWS} element={<NewsPage />} />
+            <Route path={ROUTES.BLOG_TIPS} element={<TipsPage />} />
+            <Route path={ROUTES.BLOG_LEGACY} element={<LegacyBlogRedirect />} />
+            <Route path={ROUTES.BLOG_NEWS_LEGACY} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
+            <Route path={ROUTES.BLOG_TIPS_LEGACY} element={<Navigate to={ROUTES.BLOG_TIPS} replace />} />
+            <Route path={ROUTES.NEWS_LEGACY} element={<Navigate to={ROUTES.BLOG_NEWS} replace />} />
+            <Route path={ROUTES.TIPS_LEGACY} element={<Navigate to={ROUTES.BLOG_TIPS} replace />} />
+            <Route path={ROUTES.BLOG_DETAIL_LEGACY} element={<LegacyBlogDetailRedirect />} />
+            <Route path={ROUTES.BLOG_DETAIL} element={<BlogDetailPage />} />
+            <Route path={ROUTES.GUIDE_SELL_USED} element={<SellUsedGuidePage />} />
+            <Route path={ROUTES.GUIDE_BUY_ONLINE} element={<BuyOnlineGuidePage />} />
+            <Route path={ROUTES.GUIDE_INSTALLMENT} element={<InstallmentGuidePage />} />
+            <Route path={ROUTES.STORE_SYSTEM} element={<StoreSystemPage />} />
+            <Route path={ROUTES.COMPARE} element={<ComparePage />} />
+            <Route path={ROUTES.COMPARE_LEGACY} element={<Navigate to={ROUTES.COMPARE} replace />} />
+            <Route path={ROUTES.CART} element={<CartPage />} />
+            <Route path={ROUTES.CART_LEGACY} element={<Navigate to={ROUTES.CART} replace />} />
+            <Route path={ROUTES.ACCOUNT} element={<RequireAuth><AccountPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_PASSWORD} element={<RequireAuth><AccountPasswordPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_ADDRESS} element={<RequireAuth><AccountAddressPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_ORDERS} element={<RequireAuth><AccountOrdersPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_ORDER_DETAIL} element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_WISHLIST} element={<RequireAuth><AccountWishlistPage /></RequireAuth>} />
+            <Route path={ROUTES.ACCOUNT_LEGACY} element={<Navigate to={ROUTES.ACCOUNT} replace />} />
+            <Route path={ROUTES.ACCOUNT_PASSWORD_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_PASSWORD} replace />} />
+            <Route path={ROUTES.ACCOUNT_ADDRESS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ADDRESS} replace />} />
+            <Route path={ROUTES.ACCOUNT_ORDERS_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDERS} replace />} />
+            <Route path={ROUTES.ACCOUNT_ORDER_DETAIL_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_ORDER_DETAIL} replace />} />
+            <Route path={ROUTES.ACCOUNT_WISHLIST_LEGACY} element={<Navigate to={ROUTES.ACCOUNT_WISHLIST} replace />} />
+            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+            <Route path={ROUTES.LOGIN_LEGACY} element={<LegacyLoginRedirect />} />
+            <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+            <Route path={ROUTES.REGISTER_LEGACY} element={<Navigate to={ROUTES.REGISTER} replace />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+            <Route path={ROUTES.RESET_PASSWORD_LEGACY} element={<Navigate to={ROUTES.RESET_PASSWORD} replace />} />
+            <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
+            <Route path={ROUTES.CHECKOUT_LEGACY} element={<Navigate to={ROUTES.CHECKOUT} replace />} />
+          </Route>
+
+          <Route path="/admin" element={<RequireAdmin />}>
+            <Route element={<AdminLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="products" element={<Outlet />}>
+                <Route index element={<AdminProductsPage />} />
+                <Route path=":id" element={<AdminProductsPage />} />
+              </Route>
+              <Route path="orders" element={<Outlet />}>
+                <Route index element={<AdminOrdersPage />} />
+                <Route path=":id" element={<AdminOrdersPage />} />
+              </Route>
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
+              {/*
+                Future admin route skeleton:
+                - /admin/customers
+                - /admin/categories
+                Add them here so they stay inside RequireAdmin + AdminLayout.
+              */}
+            </Route>
+          </Route>
+
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
+    </>
   )
 }
 
@@ -289,7 +219,9 @@ function App() {
   return (
     <BrowserRouter>
       <HomeDataProvider>
-        <AppShell />
+        <div className="app-shell">
+          <AppRoutes />
+        </div>
       </HomeDataProvider>
     </BrowserRouter>
   )
