@@ -1,5 +1,6 @@
 import { mockUsers } from '../data/mockUsers'
 import { fetchDummyJsonUsers, searchDummyJsonUsers } from './dummyJsonAdminApi'
+import { formatAdminRoleLabel, formatAdminStatus } from '../utils/adminDisplayMapper'
 
 const FALLBACK_CREATED_AT_BASE = Date.parse('2026-06-01T08:00:00.000Z')
 
@@ -43,7 +44,9 @@ function mapRemoteUser(user, index = 0) {
     email,
     phone,
     role,
+    roleLabel: formatAdminRoleLabel(role),
     status: getFallbackStatus(user, index),
+    statusLabel: formatAdminStatus(getFallbackStatus(user, index), 'Ngừng hoạt động'),
     createdAt: normalizeText(user.createdAt, buildCreatedAtFromIndex(index)),
     avatar: normalizeText(user.image ?? user.avatar),
     raw: user,

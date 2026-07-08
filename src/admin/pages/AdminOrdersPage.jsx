@@ -6,6 +6,7 @@ import AdminButton from '../components/ui/AdminButton'
 import AdminTable from '../components/ui/AdminTable'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { getOrders } from '../services/adminOrderService'
+import { formatAdminOrderStatus, formatAdminPaymentStatus } from '../utils/adminDisplayMapper'
 
 const cardBase = 'rounded-[28px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]'
 
@@ -40,6 +41,10 @@ function paymentMethodLabel(value) {
   }
 }
 
+function paymentStatusLabel(status) {
+  return formatAdminPaymentStatus(status, 'Chưa thanh toán')
+}
+
 function paymentStatusTone(status) {
   switch (status) {
     case 'paid':
@@ -53,17 +58,8 @@ function paymentStatusTone(status) {
   }
 }
 
-function paymentStatusLabel(status) {
-  switch (status) {
-    case 'paid':
-      return 'Đã thanh toán'
-    case 'unpaid':
-      return 'Chờ thanh toán'
-    case 'refunded':
-      return 'Đã hoàn tiền'
-    default:
-      return 'Khác'
-  }
+function orderStatusLabel(status) {
+  return formatAdminOrderStatus(status, 'Chờ xử lý')
 }
 
 function orderStatusTone(status) {
@@ -83,23 +79,6 @@ function orderStatusTone(status) {
   }
 }
 
-function orderStatusLabel(status) {
-  switch (status) {
-    case 'pending':
-      return 'Chờ xác nhận'
-    case 'confirmed':
-      return 'Đã xác nhận'
-    case 'shipping':
-      return 'Đang giao'
-    case 'completed':
-      return 'Hoàn thành'
-    case 'cancelled':
-      return 'Đã hủy'
-    default:
-      return 'Khác'
-  }
-}
-
 function EmptyState() {
   return (
     <div className={`${cardBase} px-6 py-16 text-center`}>
@@ -111,7 +90,6 @@ function EmptyState() {
     </div>
   )
 }
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([])
   const [search, setSearch] = useState('')
@@ -162,7 +140,7 @@ export default function AdminOrdersPage() {
 
         <AdminButton variant="secondary">
           <SlidersHorizontal size={16} />
-          Cập nhật
+          Cáº­p nháº­t
         </AdminButton>
       </div>
 
@@ -203,15 +181,15 @@ export default function AdminOrdersPage() {
             >
               <option value="all">Tất cả phương thức</option>
               <option value="cod">COD</option>
-              <option value="bank_transfer">Chuyển khoản</option>
+              <option value="bank_transfer">Chuyá»ƒn khoáº£n</option>
               <option value="momo">MoMo</option>
-              <option value="card">Thẻ</option>
+              <option value="card">Tháº»</option>
             </select>
           </label>
 
           <AdminButton variant="secondary" className="justify-center">
             <SlidersHorizontal size={16} />
-            Bộ lọc
+            Bá»™ lá»c
           </AdminButton>
         </div>
 
@@ -221,8 +199,8 @@ export default function AdminOrdersPage() {
             <span className="font-semibold text-slate-950">{orders.length.toLocaleString('vi-VN')}</span> đơn hàng
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <AdminBadge tone="success">{orders.filter((order) => order.paymentStatus === 'paid').length} đã thanh toán</AdminBadge>
-            <AdminBadge tone="warning">{orders.filter((order) => order.orderStatus === 'shipping').length} đang giao</AdminBadge>
+            <AdminBadge tone="success">{orders.filter((order) => order.paymentStatus === 'paid').length} Ä‘Ă£ thanh toĂ¡n</AdminBadge>
+            <AdminBadge tone="warning">{orders.filter((order) => order.orderStatus === 'shipping').length} Ä‘ang giao</AdminBadge>
           </div>
         </div>
       </div>

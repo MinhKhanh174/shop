@@ -7,7 +7,7 @@ export default function AdminBreadcrumb({ items = [] }) {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-slate-500">
+    <nav aria-label="Điều hướng trang" className="flex items-center gap-1.5 text-sm text-slate-500">
       <Link
         to="/admin/dashboard"
         className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900"

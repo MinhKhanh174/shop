@@ -145,6 +145,10 @@ export function fetchDummyJsonProductCategories() {
   return requestJson('/products/categories')
 }
 
+export function fetchDummyJsonProductCategoryList() {
+  return requestJson('/products/category-list')
+}
+
 export function fetchDummyJsonUsers(params) {
   return requestJson('/users', { params })
 }
@@ -160,4 +164,24 @@ export function searchDummyJsonUsers(query) {
 
 export function fetchDummyJsonCarts(params) {
   return requestJson('/carts', { params })
+}
+
+export function addDummyJsonProduct(payload) {
+  return requestJson('/products/add', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export function updateDummyJsonProduct(id, payload) {
+  return requestJson(`/products/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export function deleteDummyJsonProduct(id) {
+  return requestJson(`/products/${id}`, {
+    method: 'DELETE',
+  })
 }

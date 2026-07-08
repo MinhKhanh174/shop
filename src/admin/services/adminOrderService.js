@@ -1,6 +1,10 @@
 import { mockOrders } from '../data/mockOrders'
 import { getUsers } from './adminUserService'
 import { fetchDummyJsonCarts } from './dummyJsonAdminApi'
+import {
+  formatAdminOrderStatus,
+  formatAdminPaymentStatus,
+} from '../utils/adminDisplayMapper'
 
 const FALLBACK_CREATED_AT_BASE = Date.parse('2026-07-01T12:00:00.000Z')
 
@@ -90,8 +94,11 @@ function mapRemoteCartToOrder(cart, index = 0, users = []) {
     itemsCount: normalizeNumber(cart.totalQuantity, normalizeNumber(cart.totalProducts, 0)),
     total: normalizeNumber(cart.total, 0),
     paymentMethod,
+    paymentMethodLabel: paymentMethod,
     paymentStatus: pickPaymentStatus(orderStatus, index),
+    paymentStatusLabel: formatAdminPaymentStatus(pickPaymentStatus(orderStatus, index), 'Chưa thanh toán'),
     orderStatus,
+    orderStatusLabel: formatAdminOrderStatus(orderStatus, 'Chờ xử lý'),
     createdAt: buildCreatedAtFromIndex(index),
     raw: cart,
   }
@@ -124,8 +131,17 @@ function mapFallbackOrder(order, index = 0) {
     paymentMethod: ['cod', 'bank_transfer', 'momo', 'card'].includes(normalizeText(order.paymentMethod).toLowerCase())
       ? normalizeText(order.paymentMethod).toLowerCase()
       : 'cod',
+    paymentMethodLabel: normalizeText(order.paymentMethod).toLowerCase() === 'bank_transfer'
+      ? 'Chuyển khoản'
+      : normalizeText(order.paymentMethod).toLowerCase() === 'momo'
+        ? 'MoMo'
+        : normalizeText(order.paymentMethod).toLowerCase() === 'card'
+          ? 'Thẻ'
+          : 'COD',
     paymentStatus,
+    paymentStatusLabel: formatAdminPaymentStatus(paymentStatus, 'Chưa thanh toán'),
     orderStatus,
+    orderStatusLabel: formatAdminOrderStatus(orderStatus, 'Chờ xử lý'),
     createdAt: normalizeText(order.createdAt, buildCreatedAtFromIndex(index)),
     raw: order,
   }

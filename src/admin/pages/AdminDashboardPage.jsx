@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
 import {
-  ArrowUpRight,
   Boxes,
   CalendarRange,
   ChevronRight,
@@ -9,7 +8,7 @@ import {
   ShoppingCart,
   Users,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import AdminBadge from '../components/ui/AdminBadge'
 import AdminButton from '../components/ui/AdminButton'
@@ -73,62 +72,81 @@ function latestOrderTone(status) {
   }
 }
 
-function ChartMeta({ sourceLabel, note, details = [] }) {
-  return (
-    <div className="border-t border-slate-100 px-5 py-4">
-      <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-          {sourceLabel}
-        </span>
-      </div>
-      {note ? <p className="mt-2 text-sm leading-6 text-slate-500">{note}</p> : null}
-      {details.length ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {details.map((detail) => (
-            <span key={detail} className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
-              {detail}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  )
+function ChartMeta() {
+  return null
 }
 function RevenueTrendChart({ chart }) {
   const series = chart.data ?? []
   const values = series.length ? series.map((item) => Number(item.value ?? 0)) : [0]
-  const maxValue = Math.max(5, ...values)
+  const maxValue = Math.max(1, ...values)
+  const [hoveredPoint, setHoveredPoint] = useState(null)
   const width = 720
   const height = 260
   const padding = { top: 24, right: 16, bottom: 34, left: 44 }
   const innerWidth = width - padding.left - padding.right
   const innerHeight = height - padding.top - padding.bottom
   const step = series.length > 1 ? innerWidth / (series.length - 1) : innerWidth
-  const tickMax = Math.ceil(maxValue / 5) * 5
+  const tickStep = Math.max(1000000, Math.ceil(maxValue / 4 / 1000000) * 1000000)
+  const tickMax = tickStep * 4
 
   const points = values.map((value, index) => {
     const x = padding.left + index * step
     const y = padding.top + (1 - value / maxValue) * innerHeight
-    return { x, y }
+    return {
+      x,
+      y,
+      label: series[index]?.label ?? '',
+      value,
+      orderCount: Number(series[index]?.orderCount ?? 0),
+    }
   })
 
   const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
   const areaPath = `${linePath} L ${padding.left + innerWidth} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`
+
+  const hoveredTooltip = hoveredPoint
+    ? {
+        left: Math.min(width - 220, Math.max(12, hoveredPoint.x - 110)),
+        top: Math.max(12, hoveredPoint.y - 118),
+      }
+    : null
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <div>
           <h3 className="text-base font-semibold text-slate-900">{chart.title}</h3>
-          <p className="mt-1 text-sm text-slate-500">Biểu đồ minh họa, chưa có API doanh thu thật.</p>
+          <p className="mt-1 text-sm text-slate-500">Biểu đồ doanh thu thật từ đơn hàng đã đồng bộ vào admin.</p>
         </div>
         <AdminButton variant="secondary" size="sm">
-          7 ngày qua
+          7 ngày gần nhất
           <ChevronRight size={14} />
         </AdminButton>
       </div>
 
-      <div className="px-3 py-3 sm:px-4">
+      <div className="relative px-3 py-3 sm:px-4" onMouseLeave={() => setHoveredPoint(null)}>
+        {hoveredPoint ? (
+          <div
+            className="pointer-events-none absolute z-20 w-52 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.14)]"
+            style={{
+              left: hoveredTooltip.left,
+              top: hoveredTooltip.top,
+            }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{hoveredPoint.label}</p>
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500">Tổng đơn</span>
+                <span className="font-semibold text-slate-950">{hoveredPoint.orderCount.toLocaleString('vi-VN')}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500">Doanh thu</span>
+                <span className="font-semibold text-slate-950">{formatCurrency(hoveredPoint.value)}</span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <svg viewBox={`0 0 ${width} ${height}`} className="h-[280px] w-full">
           <defs>
             <linearGradient id="revenueFill" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -144,7 +162,7 @@ function RevenueTrendChart({ chart }) {
               <g key={tick}>
                 <line x1={padding.left} x2={padding.left + innerWidth} y1={y} y2={y} stroke="#E2E8F0" strokeDasharray="4 4" />
                 <text x={12} y={y + 4} fill="#64748B" fontSize="11" fontWeight="600">
-                  {tick === 0 ? '0' : `${Math.round(tick)}M`}
+                  {formatCurrency(Math.round(tick))}
                 </text>
               </g>
             )
@@ -155,6 +173,20 @@ function RevenueTrendChart({ chart }) {
 
           {points.map((point, index) => (
             <g key={index}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r="14"
+                fill="transparent"
+                onMouseEnter={() => setHoveredPoint(point)}
+                onFocus={() => setHoveredPoint(point)}
+                onMouseLeave={() => setHoveredPoint(null)}
+                onBlur={() => setHoveredPoint(null)}
+                tabIndex={0}
+                role="button"
+                aria-label={`Xem chi tiết ngày ${point.label}`}
+                className="cursor-pointer outline-none"
+              />
               <circle cx={point.x} cy={point.y} r="5" fill="#fff" stroke="#3B82F6" strokeWidth="2.5" />
             </g>
           ))}
@@ -187,7 +219,7 @@ function OrderOverviewChart({ chart, totalOrders }) {
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
       <div className="border-b border-slate-100 px-5 py-4">
         <h3 className="text-base font-semibold text-slate-900">{chart.title}</h3>
-        <p className="mt-1 text-sm text-slate-500">Biểu đồ demo API từ DummyJSON carts/users, không phải production.</p>
+        <p className="mt-1 text-sm text-slate-500">Biểu đồ phân bổ theo trạng thái đơn hàng thật đã đồng bộ vào dashboard.</p>
       </div>
 
       <div className="mt-5 flex flex-col gap-5 px-5">
@@ -232,9 +264,23 @@ function OrderOverviewChart({ chart, totalOrders }) {
   )
 }
 
-function StatCard({ label, value, hint, icon: Icon, accent }) {
+function StatCard({ label, value, icon: Icon, accent, onClick }) {
+  const Component = onClick ? 'button' : 'article'
+  const componentProps = onClick
+    ? {
+        type: 'button',
+        onClick,
+      }
+    : {}
+
   return (
-    <article className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+    <Component
+      {...componentProps}
+      className={[
+        'rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
+        onClick ? 'w-full cursor-pointer text-left transition-colors hover:border-amber-300 hover:bg-amber-50/40' : '',
+      ].join(' ')}
+    >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-2xl font-semibold text-slate-500">{label}</p>
@@ -246,11 +292,7 @@ function StatCard({ label, value, hint, icon: Icon, accent }) {
           <span className="block w-full break-words text-3xl font-semibold leading-tight tracking-tight text-slate-950">{value}</span>
         </div>
       </div>
-      <p className="mt-4 flex items-center gap-1.5 text-sm text-slate-500">
-        <ArrowUpRight size={14} className="text-emerald-500" />
-        {hint}
-      </p>
-    </article>
+    </Component>
   )
 }
 
@@ -275,6 +317,7 @@ function isDashboardEmpty(result) {
 }
 
 export default function AdminDashboardPage() {
+  const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(null)
   const [status, setStatus] = useState('loading')
   const [errorMessage, setErrorMessage] = useState('')
@@ -362,7 +405,7 @@ export default function AdminDashboardPage() {
       <section className="space-y-6">
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 text-slate-950">
           <p className="font-semibold">Chưa có dữ liệu dashboard để hiển thị.</p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Hệ thống chưa nhận được dữ liệu từ products, users hoặc orders.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Hệ thống chưa nhận được dữ liệu từ sản phẩm, người dùng hoặc đơn hàng.</p>
           <button
             type="button"
             onClick={handleRetry}
@@ -378,30 +421,28 @@ export default function AdminDashboardPage() {
 
   const summaryCards = [
     {
-      label: 'Tổng danh thu',
+      label: 'Tổng doanh thu',
       value: formatCurrency(dashboard.stats.monthlyRevenue ?? dashboard.stats.totalRevenue),
-      hint: 'Doanh thu trong tháng hiện tại từ dashboard service.',
       icon: CircleDollarSign,
       accent: 'bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100',
     },
     {
       label: 'Tổng đơn hàng',
       value: dashboard.stats.totalOrders.toLocaleString('vi-VN'),
-      hint: 'Lấy từ nguồn orders đã chuẩn hóa.',
       icon: ShoppingCart,
       accent: 'bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-100',
+      onClick: () => navigate('/admin/orders'),
     },
     {
       label: 'Tổng khách hàng',
       value: dashboard.stats.totalUsers.toLocaleString('vi-VN'),
-      hint: 'Lấy từ nguồn users đã chuẩn hóa.',
       icon: Users,
       accent: 'bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-100',
+      onClick: () => navigate('/admin/users'),
     },
     {
       label: 'Sản phẩm sắp hết',
       value: dashboard.stats.lowStockProductsCount.toLocaleString('vi-VN'),
-      hint: 'Tính từ products đã chuẩn hóa.',
       icon: Boxes,
       accent: 'bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-100',
     },
@@ -413,7 +454,7 @@ export default function AdminDashboardPage() {
         <div className="max-w-3xl">
           <p className="text-[36px] font-bold uppercase tracking-[0.24em] text-slate-950">Tổng quan</p>
           <h1 className="mt-2 text-[14px] font-normal tracking-tight text-slate-500">
-            Xin chào Admin, đây là dashboard demo đã tách rõ nguồn dữ liệu.
+            Xin chào quản trị viên, đây là bảng điều khiển demo đã tách rõ nguồn dữ liệu.
           </h1>
         </div>
 
@@ -484,7 +525,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div>
               <h3 className="text-base font-semibold text-slate-900">Sản phẩm bán chạy</h3>
-              <p className="mt-1 text-sm text-slate-500">Dữ liệu được chuẩn hóa từ products service.</p>
+              <p className="mt-1 text-sm text-slate-500">Top 5 sản phẩm bán ra nhiều nhất trong tháng hiện tại.</p>
             </div>
             <Link to="/admin/products" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700">
               Xem tất cả
@@ -511,6 +552,7 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="truncate font-medium text-slate-950">{product.name}</p>
+                          <p className="mt-1 text-xs text-slate-500">Đơn trong tháng: {product.orderCount ?? 0}</p>
                           <p className="mt-1 text-xs text-slate-500">Tồn kho: {product.stock}</p>
                         </div>
                       </div>

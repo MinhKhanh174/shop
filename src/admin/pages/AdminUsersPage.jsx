@@ -5,6 +5,7 @@ import AdminBadge from '../components/ui/AdminBadge'
 import AdminButton from '../components/ui/AdminButton'
 import AdminTable from '../components/ui/AdminTable'
 import { getUsers } from '../services/adminUserService'
+import { formatAdminRoleLabel, formatAdminStatus } from '../utils/adminDisplayMapper'
 
 const cardBase = 'rounded-[28px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]'
 
@@ -14,7 +15,7 @@ function normalizeValue(value) {
 }
 
 function roleLabel(role) {
-  return String(role ?? '').toLowerCase() === 'admin' ? 'Admin' : 'Customer'
+  return formatAdminRoleLabel(role)
 }
 
 function roleTone(role) {
@@ -22,7 +23,7 @@ function roleTone(role) {
 }
 
 function statusLabel(status) {
-  return String(status ?? '').toLowerCase() === 'active' ? 'Hoạt động' : 'Ngừng'
+  return formatAdminStatus(status, 'Ngừng hoạt động')
 }
 
 function statusTone(status) {
@@ -68,7 +69,6 @@ function LoadingState() {
     </div>
   )
 }
-
 function EmptyState({ onRetry }) {
   return (
     <div className={`${cardBase} px-6 py-16 text-center`}>
@@ -76,11 +76,11 @@ function EmptyState({ onRetry }) {
         <Search size={22} />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-slate-950">Chưa có dữ liệu khách hàng</h3>
-      <p className="mt-2 text-sm text-slate-500">Hệ thống chưa nhận được danh sách users từ API demo.</p>
+      <p className="mt-2 text-sm text-slate-500">Hệ thống chưa nhận được danh sách người dùng từ API demo.</p>
       <div className="mt-6 flex justify-center">
         <AdminButton variant="secondary" onClick={onRetry}>
           <RefreshCcw size={14} />
-          Tải lại
+          Táº£i láº¡i
         </AdminButton>
       </div>
     </div>
@@ -93,11 +93,11 @@ function NoResultsState({ onReset }) {
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
         <Search size={22} />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-slate-950">Không tìm thấy user phù hợp</h3>
+      <h3 className="mt-4 text-lg font-semibold text-slate-950">Không tìm thấy người dùng phù hợp</h3>
       <p className="mt-2 text-sm text-slate-500">Hãy thử đổi từ khóa tìm kiếm để xem danh sách khác.</p>
       <div className="mt-6 flex justify-center">
         <AdminButton variant="secondary" onClick={onReset}>
-          Xóa bộ lọc
+          XĂ³a bá»™ lá»c
         </AdminButton>
       </div>
     </div>
@@ -110,12 +110,12 @@ function ErrorState({ message, onRetry }) {
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-rose-600 shadow-sm">
         <AlertTriangle size={22} />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-rose-950">Không tải được danh sách users</h3>
+      <h3 className="mt-4 text-lg font-semibold text-rose-950">Không tải được danh sách người dùng</h3>
       <p className="mt-2 text-sm text-rose-700">{message}</p>
       <div className="mt-6 flex justify-center">
         <AdminButton onClick={onRetry}>
           <RefreshCcw size={14} />
-          Thử lại
+          Thá»­ láº¡i
         </AdminButton>
       </div>
     </div>
@@ -162,7 +162,7 @@ export default function AdminUsersPage() {
 
         setUsers([])
         setStatus('error')
-        setErrorMessage(error instanceof Error ? error.message : 'Không tải được dữ liệu users.')
+        setErrorMessage(error instanceof Error ? error.message : 'Không tải được dữ liệu người dùng.')
       })
 
     return () => {
@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
   }
 
   if (status === 'error') {
-    return <ErrorState message={errorMessage || 'Không tải được dữ liệu users từ API demo.'} onRetry={handleRetry} />
+    return <ErrorState message={errorMessage || 'Không tải được dữ liệu người dùng từ API demo.'} onRetry={handleRetry} />
   }
 
   if (status === 'empty' && !users.length) {
@@ -220,20 +220,20 @@ export default function AdminUsersPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">Quản lý cửa hàng</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Quản lý khách hàng</h1>
           <p className="mt-3 text-sm leading-7 text-slate-500">
-            Danh sách users được lấy từ service admin và hiển thị theo dữ liệu API demo hoặc mock fallback.
+            Danh sách người dùng được lấy từ service admin và hiển thị theo dữ liệu API demo hoặc dữ liệu dự phòng.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <AdminBadge tone="info">{summary.total.toLocaleString('vi-VN')} users</AdminBadge>
-          <AdminBadge tone="success">{summary.active.toLocaleString('vi-VN')} hoạt động</AdminBadge>
-          <AdminBadge tone="indigo">{summary.admins.toLocaleString('vi-VN')} admin</AdminBadge>
+          <AdminBadge tone="info">{summary.total.toLocaleString('vi-VN')} người dùng</AdminBadge>
+          <AdminBadge tone="success">{summary.active.toLocaleString('vi-VN')} đang hoạt động</AdminBadge>
+          <AdminBadge tone="indigo">{summary.admins.toLocaleString('vi-VN')} quản trị viên</AdminBadge>
         </div>
       </div>
 
       {shouldShowFallbackWarning ? (
-        <WarningBanner title="Đang hiển thị dữ liệu mock fallback cho users">
-          <p>Service adminUserService không lấy được dữ liệu API demo, nên trang này đang hiển thị mock data.</p>
+        <WarningBanner title="Đang hiển thị dữ liệu dự phòng cho người dùng">
+          <p>Service adminUserService không lấy được dữ liệu API demo, nên trang này đang hiển thị dữ liệu giả lập.</p>
         </WarningBanner>
       ) : null}
 
@@ -243,7 +243,7 @@ export default function AdminUsersPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm kiếm tên, email, số điện thoại, role..."
+            placeholder="Tìm kiếm tên, email, số điện thoại, vai trò..."
             className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
           />
         </label>
@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
             <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               <th className="px-5 py-4">Tên</th>
               <th className="px-5 py-4">Email</th>
-              <th className="px-5 py-4">Role</th>
+              <th className="px-5 py-4">Vai trò</th>
               <th className="px-5 py-4">Trạng thái</th>
               <th className="px-5 py-4">Số điện thoại</th>
               <th className="px-5 py-4">Ngày tạo</th>

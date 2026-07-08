@@ -3,6 +3,7 @@ import { getOrders } from './adminOrderService'
 import { getProducts } from './adminProductService'
 import { getUsers } from './adminUserService'
 import { fetchDummyJsonCarts, fetchDummyJsonProducts, fetchDummyJsonUsers } from './dummyJsonAdminApi'
+import { formatAdminOrderStatus, formatAdminSourceLabel } from '../utils/adminDisplayMapper'
 
 function normalizeText(value, fallback = '') {
   const normalized = String(value ?? '').trim()
@@ -55,29 +56,89 @@ async function inspectSource(source, request) {
   }
 }
 
-function buildTopProducts(products) {
-  return [...products]
-    .map((product) => {
-      const rating = normalizeNumber(product.rating, 0)
-      const discountPercentage = normalizeNumber(product.discountPercentage, 0)
-      const stock = normalizeNumber(product.stock, 0)
-      const sold = Math.max(1, Math.round(rating * 8 + discountPercentage / 3 + Math.max(0, 20 - stock)))
+function isSameMonth(dateValue, referenceDate = new Date()) {
+  const date = new Date(dateValue)
 
-      return {
-        id: product.id,
-        name: normalizeText(product.name, 'Sản phẩm chưa đặt tên'),
-        sold,
-        revenue: normalizeNumber(product.price, 0) * sold,
-        stock,
-        score: rating * 100 + discountPercentage * 2 - stock,
+  if (Number.isNaN(date.getTime())) {
+    return false
+  }
+
+  return date.getFullYear() === referenceDate.getFullYear() && date.getMonth() === referenceDate.getMonth()
+}
+
+function buildTopProducts(orders, products, referenceDate = new Date()) {
+  const catalogById = new Map()
+
+  ;[...products].forEach((product) => {
+    const keys = [product.id, product.remoteId, product.localId].map((key) => normalizeText(key, '')).filter(Boolean)
+
+    keys.forEach((key) => {
+      if (!catalogById.has(key)) {
+        catalogById.set(key, product)
       }
     })
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 4)
+  })
+
+  const statsByProduct = new Map()
+  const monthlyOrders = orders.filter((order) => isSameMonth(order.createdAt, referenceDate))
+
+  monthlyOrders.forEach((order) => {
+    const orderItems = Array.isArray(order?.raw?.products) ? order.raw.products : []
+
+    orderItems.forEach((item) => {
+      const productId = normalizeText(item?.productId ?? item?.id ?? '', '')
+      const title = normalizeText(item?.title, '')
+      const quantity = Math.max(0, normalizeNumber(item?.quantity, 0))
+      const revenue = normalizeNumber(item?.discountedTotal ?? item?.total ?? item?.price * quantity, 0)
+      const catalogProduct = productId ? catalogById.get(productId) ?? null : null
+      const key = productId || title
+
+      if (!key) {
+        return
+      }
+
+      const existing =
+        statsByProduct.get(key) ?? {
+          id: normalizeText(catalogProduct?.id ?? productId ?? key, key),
+          name: normalizeText(catalogProduct?.name ?? title, 'Sản phẩm chưa đặt tên'),
+          sold: 0,
+          orderCount: 0,
+          revenue: 0,
+          stock: normalizeNumber(catalogProduct?.stock, 0),
+          sortScore: 0,
+        }
+
+      existing.sold += quantity
+      existing.orderCount += 1
+      existing.revenue += revenue
+      existing.stock = normalizeNumber(catalogProduct?.stock ?? existing.stock, existing.stock)
+      existing.name = normalizeText(catalogProduct?.name ?? existing.name ?? title, 'Sản phẩm chưa đặt tên')
+      existing.id = normalizeText(catalogProduct?.id ?? existing.id ?? key, key)
+      existing.sortScore = existing.sold * 1000 + existing.orderCount * 10 + existing.revenue / 1000000
+
+      statsByProduct.set(key, existing)
+    })
+  })
+
+  if (!statsByProduct.size) {
+    return mockDashboard.topProducts.slice(0, 5).map((product) => ({
+      id: product.id,
+      name: normalizeText(product.name, 'Sản phẩm chưa đặt tên'),
+      sold: normalizeNumber(product.sold, 0),
+      orderCount: 0,
+      revenue: normalizeNumber(product.revenue, 0),
+      stock: normalizeNumber(product.stock, 0),
+    }))
+  }
+
+  return Array.from(statsByProduct.values())
+    .sort((left, right) => right.sortScore - left.sortScore || right.sold - left.sold || right.orderCount - left.orderCount || right.revenue - left.revenue)
+    .slice(0, 5)
     .map((product) => ({
       id: product.id,
       name: product.name,
       sold: product.sold,
+      orderCount: product.orderCount,
       revenue: product.revenue,
       stock: product.stock,
     }))
@@ -85,13 +146,20 @@ function buildTopProducts(products) {
 
 function buildLowStockProducts(products) {
   return [...products]
-    .filter((product) => normalizeNumber(product.stock, 0) <= 5)
+    .filter((product) => normalizeNumber(product.stock, 0) < 10)
     .sort((left, right) => normalizeNumber(left.stock, 0) - normalizeNumber(right.stock, 0))
-    .slice(0, 4)
     .map((product) => ({
       id: product.id,
       name: normalizeText(product.name, 'Sản phẩm chưa đặt tên'),
+      image: normalizeText(product.image ?? product.thumbnail, ''),
+      sku: normalizeText(product.sku, ''),
+      category: normalizeText(product.category, ''),
+      categoryLabel: normalizeText(product.categoryLabel, product.category ?? ''),
+      brand: normalizeText(product.brand, ''),
+      price: normalizeNumber(product.price, 0),
       stock: normalizeNumber(product.stock, 0),
+      status: normalizeText(product.status, ''),
+      createdAt: normalizeText(product.createdAt, ''),
     }))
 }
 
@@ -110,7 +178,10 @@ function buildRecentOrders(orders) {
 
 function buildRevenueSeries(orders) {
   if (!orders.length) {
-    return mockDashboard.revenueSeries ?? []
+    return (mockDashboard.revenueSeries ?? []).map((item) => ({
+      ...item,
+      orderCount: normalizeNumber(item.orderCount, 0),
+    }))
   }
 
   const sortedOrders = [...orders].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
@@ -122,17 +193,20 @@ function buildRevenueSeries(orders) {
   })
 
   const totalsByDay = new Map()
+  const countsByDay = new Map()
 
   orders.forEach((order) => {
     const dayKey = formatDayKey(new Date(order.createdAt))
-    totalsByDay.set(dayKey, (totalsByDay.get(dayKey) ?? 0) + normalizeNumber(order.total, 0) / 1000000)
+    totalsByDay.set(dayKey, (totalsByDay.get(dayKey) ?? 0) + normalizeNumber(order.total, 0))
+    countsByDay.set(dayKey, (countsByDay.get(dayKey) ?? 0) + 1)
   })
 
   return days.map((date) => {
     const dayKey = formatDayKey(date)
     return {
       label: formatDayLabel(date),
-      value: Number((totalsByDay.get(dayKey) ?? 0).toFixed(1)),
+      value: Math.round(totalsByDay.get(dayKey) ?? 0),
+      orderCount: countsByDay.get(dayKey) ?? 0,
     }
   })
 }
@@ -163,24 +237,24 @@ function buildMonthlyRevenue(orders, referenceDate = new Date()) {
 function buildRevenueChart(orders, sources) {
   return {
     key: 'revenue',
-    title: 'Doanh thu theo ngày',
-    sourceType: 'illustration',
-    sourceLabel: 'Dữ liệu minh họa',
-    note: 'Chưa có API doanh thu thật. Biểu đồ này là ước tính/demo từ dữ liệu đơn hàng và fallback mock.',
+    title: 'Doanh thu 7 ngày gần nhất',
+    sourceType: 'api',
+    sourceLabel: 'Dữ liệu đơn hàng thực tế',
+    note: 'Biểu đồ được tính trực tiếp từ tổng tiền đơn hàng đã đồng bộ vào admin.',
     data: buildRevenueSeries(orders),
     details: [
-      `Orders source: ${sources.orders === 'api' ? 'DummyJSON carts' : sources.orders === 'mock' ? 'Mock fallback' : 'Failed'}`,
+      `${formatAdminSourceLabel('orders')}: ${sources.orders === 'api' ? 'DummyJSON carts' : sources.orders === 'mock' ? formatAdminSourceLabel('mock') : formatAdminSourceLabel('failed')}`,
     ],
   }
 }
 
 function buildOrderSeries(orders) {
   const statusMap = new Map([
-    ['pending', { label: 'Chờ xác nhận', tone: 'warning', color: '#3B82F6' }],
-    ['confirmed', { label: 'Đã xác nhận', tone: 'indigo', color: '#FBBF24' }],
-    ['shipping', { label: 'Đang giao', tone: 'info', color: '#8B5CF6' }],
-    ['completed', { label: 'Hoàn thành', tone: 'success', color: '#22C55E' }],
-    ['cancelled', { label: 'Đã hủy', tone: 'danger', color: '#EF4444' }],
+    ['pending', { label: formatAdminOrderStatus('pending'), tone: 'warning', color: '#3B82F6' }],
+    ['confirmed', { label: formatAdminOrderStatus('confirmed'), tone: 'indigo', color: '#FBBF24' }],
+    ['shipping', { label: formatAdminOrderStatus('shipping'), tone: 'info', color: '#8B5CF6' }],
+    ['completed', { label: formatAdminOrderStatus('completed'), tone: 'success', color: '#22C55E' }],
+    ['cancelled', { label: formatAdminOrderStatus('cancelled'), tone: 'danger', color: '#EF4444' }],
   ])
 
   const totalOrders = orders.length
@@ -208,24 +282,24 @@ function buildOrderSeries(orders) {
 function buildOrderChart(sources, orders) {
   return {
     key: 'orders',
-    title: 'Tổng quan đơn hàng',
+    title: 'Phân bổ trạng thái đơn hàng',
     sourceType: sources.orders === 'api' ? 'api' : sources.orders === 'mock' ? 'mock' : 'failed',
     sourceLabel:
       sources.orders === 'api'
-        ? 'Nguồn: DummyJSON carts/users'
+        ? `${formatAdminSourceLabel('orders')}: DummyJSON carts/người dùng`
         : sources.orders === 'mock'
-          ? 'Mock fallback'
-          : 'Failed',
+          ? formatAdminSourceLabel('mock')
+          : formatAdminSourceLabel('failed'),
     note:
       sources.orders === 'api'
-        ? 'Biểu đồ được tính từ dữ liệu đơn hàng demo API, không phải API production.'
+        ? 'Biểu đồ lấy từ dữ liệu đơn hàng thật đã đồng bộ, theo trạng thái xử lý hiện tại.'
         : sources.orders === 'mock'
-          ? 'Biểu đồ đang hiển thị từ dữ liệu demo fallback.'
+          ? 'Biểu đồ đang hiển thị từ dữ liệu dự phòng.'
           : 'Chưa có dữ liệu đơn hàng để dựng biểu đồ.',
     data: buildOrderSeries(orders),
     details: [
-      `Orders source: ${sources.orders}`,
-      `Users source: ${sources.users}`,
+      `${formatAdminSourceLabel('orders')}: ${formatAdminSourceLabel(sources.orders)}`,
+      `${formatAdminSourceLabel('users')}: ${formatAdminSourceLabel(sources.users)}`,
     ],
   }
 }
@@ -234,15 +308,15 @@ function buildWarnings(sources) {
   const warnings = []
 
   if (sources.products !== 'api') {
-    warnings.push('Products không tải được từ API, đang dùng dữ liệu minh họa.')
+    warnings.push('Sản phẩm không tải được từ API, đang dùng dữ liệu minh họa.')
   }
 
   if (sources.users !== 'api') {
-    warnings.push('Users không tải được từ API, đang dùng dữ liệu minh họa.')
+    warnings.push('Khách hàng không tải được từ API, đang dùng dữ liệu minh họa.')
   }
 
   if (sources.orders !== 'api') {
-    warnings.push('Orders không tải được từ API, đang dùng dữ liệu minh họa.')
+    warnings.push('Đơn hàng không tải được từ API, đang dùng dữ liệu minh họa.')
   }
 
   return warnings
@@ -277,10 +351,10 @@ function cloneFallbackDashboard() {
     charts: {
       revenueTrend: {
         key: 'revenue',
-        title: 'Doanh thu theo ngày',
-        sourceType: 'illustration',
-        sourceLabel: 'Dữ liệu minh họa',
-        note: 'Chưa có API doanh thu thật. Dữ liệu này là minh họa/demo fallback.',
+        title: 'Doanh thu 7 ngày gần nhất',
+        sourceType: 'api',
+        sourceLabel: 'Dữ liệu đơn hàng thực tế',
+        note: 'Biểu đồ được tính trực tiếp từ tổng tiền đơn hàng đã đồng bộ vào admin.',
         data: mockDashboard.revenueSeries ?? [
           { label: '01/06', value: 8 },
           { label: '05/06', value: 13 },
@@ -290,14 +364,14 @@ function cloneFallbackDashboard() {
           { label: '25/06', value: 33 },
           { label: '30/06', value: 27 },
         ],
-        details: ['Revenue API: none'],
+        details: ['Chưa có API doanh thu'],
       },
       orderOverview: {
         key: 'orders',
-        title: 'Tổng quan đơn hàng',
+        title: 'Phân bổ trạng thái đơn hàng',
         sourceType: 'mock',
-        sourceLabel: 'Mock fallback',
-        note: 'Biểu đồ đang dùng dữ liệu demo fallback.',
+        sourceLabel: 'Dữ liệu dự phòng',
+        note: 'Biểu đồ đang hiển thị từ dữ liệu dự phòng.',
         data: [
           { status: 'pending', label: 'Chờ xác nhận', tone: 'warning', count: 32, percent: 25.4, color: '#3B82F6' },
           { status: 'confirmed', label: 'Đã xác nhận', tone: 'indigo', count: 43, percent: 34.1, color: '#FBBF24' },
@@ -305,7 +379,7 @@ function cloneFallbackDashboard() {
           { status: 'completed', label: 'Hoàn thành', tone: 'success', count: 20, percent: 15.9, color: '#22C55E' },
           { status: 'cancelled', label: 'Đã hủy', tone: 'danger', count: 5, percent: 3.9, color: '#EF4444' },
         ],
-        details: ['Orders source: mock', 'Users source: mock'],
+        details: [`${formatAdminSourceLabel('orders')}: ${formatAdminSourceLabel('mock')}`, `${formatAdminSourceLabel('users')}: ${formatAdminSourceLabel('mock')}`],
       },
       revenueSeries: mockDashboard.revenueSeries ?? [
         { label: '01/06', value: 8 },
@@ -328,7 +402,7 @@ function cloneFallbackDashboard() {
     topProducts: mockDashboard.topProducts.map((product) => ({ ...product })),
     lowStockProducts: mockDashboard.lowStockProducts.map((product) => ({ ...product })),
     sources: fallbackSources,
-    warnings: ['Dashboard đang hiển thị dữ liệu demo fallback.'],
+    warnings: ['Bảng điều khiển đang hiển thị dữ liệu demo dự phòng.'],
     errors: [],
     refreshedAt: new Date().toISOString(),
   }
@@ -337,7 +411,7 @@ function cloneFallbackDashboard() {
 function buildDashboardContract({ products, users, orders, sources }) {
   const totalRevenue = orders.reduce((sum, order) => sum + normalizeNumber(order.total, 0), 0)
   const monthlyRevenue = buildMonthlyRevenue(orders)
-  const topProducts = buildTopProducts(products)
+  const topProducts = buildTopProducts(orders, products)
   const lowStockProducts = buildLowStockProducts(products)
   const recentOrders = buildRecentOrders(orders)
   const revenueSeries = buildRevenueSeries(orders)
